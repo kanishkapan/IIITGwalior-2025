@@ -1,7 +1,33 @@
-export default function App() {
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Navbar from "../src/components/Navbar/Navbar";
+import HomePage from "./Pages/HomePage";
+
+const Home = () => <div className="text-center mt-10">🏠 Welcome to Home</div>;
+const AIBot = () => <div className="text-center mt-10">🤖 AI Bot Page</div>;
+const Contact = () => <div className="text-center mt-10">📞 Contact Page</div>;
+const Profile = () => <div className="text-center mt-10">👤 Profile Page</div>;
+const Appointment = () => <div className="text-center mt-10">📅 Appointment Page</div>;
+const VideoCall = () => <div className="text-center mt-10">📹 Video Call Page</div>;
+const SignUp = () => <div className="text-center mt-10">📝 Sign Up Page</div>;
+const Login = () => <div className="text-center mt-10">🔑 Login Page</div>;
+
+const App = () => {
   return (
-    <div className="flex items-center justify-center min-h-screen bg-blue-500">
-      <h1 className="text-white text-3xl font-bold">Hello, Tailwind with Vite!</h1>
-    </div>
+    <Router>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<HomePage/>}/>
+        <Route path="/ai-bot" element={<AIBot />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/appointment" element={<Appointment />} />
+        <Route path="/video-call" element={<VideoCall />} />
+        <Route path="/signup" element={<SignUp />} />
+        <Route path="/login" element={<Login />} />
+      </Routes>
+    </Router>
   );
-}
+};
+
+export default App;
