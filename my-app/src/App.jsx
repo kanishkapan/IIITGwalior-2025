@@ -2,6 +2,8 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Navbar from "../src/components/Navbar/Navbar";
 import HomePage from "./Pages/HomePage";
+import PatientForm from "./Pages/PatientForm";
+import Aibot from "./Pages/Aibot";
 
 const Home = () => <div className="text-center mt-10">🏠 Welcome to Home</div>;
 const AIBot = () => <div className="text-center mt-10">🤖 AI Bot Page</div>;
@@ -18,13 +20,14 @@ const App = () => {
       <Navbar />
       <Routes>
         <Route path="/" element={<HomePage/>}/>
-        <Route path="/ai-bot" element={<AIBot />} />
+        <Route path="/ai-bot" element={<Aibot />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/appointment" element={<Appointment />} />
         <Route path="/video-call" element={<VideoCall />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/patient" element={<PatientForm />} />
       </Routes>
     </Router>
   );
