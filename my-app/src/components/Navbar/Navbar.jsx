@@ -11,6 +11,7 @@ const Navbar = () => {
       <ul className="hidden md:flex space-x-6 text-lg text-gray-700">
         <li><Link to="/" className="cursor-pointer hover:text-green-500">Home</Link></li>
         <li><Link to="/ai-bot" className="cursor-pointer hover:text-green-500">AI Bot</Link></li>
+        <li><Link to="/medicine" className="cursor-pointer hover:text-green-500">Telemedicines</Link></li>
         <li><Link to="/contact" className="cursor-pointer hover:text-green-500">Contact</Link></li>
         <li><Link to="/profile" className="cursor-pointer hover:text-green-500">Profile</Link></li>
         <li><Link to="/appointment" className="cursor-pointer hover:text-green-500">Appointment</Link></li>
