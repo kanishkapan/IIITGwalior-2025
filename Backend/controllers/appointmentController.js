@@ -2,13 +2,13 @@ import { Appointment } from "../models/appointmentModel.js";
 
 export const bookAppointment = async (req, res) => {
   try {
-    const { doctorId, date, timeSlot } = req.body;
+    const { doctorId, slotDateTime } = req.body;
     const studentId = req.user.id;
+    
     // Check if the student is booking a valid time slot
     const existingAppointment = await Appointment.findOne({
       doctorId,
-      date,
-      timeSlot,
+      slotDateTime
     });
 
     if (existingAppointment) {
@@ -18,8 +18,7 @@ export const bookAppointment = async (req, res) => {
     const appointment = new Appointment({
       studentId,
       doctorId,
-      date,
-      timeSlot,
+      slotDateTime
     });
 
     await appointment.save();
@@ -33,11 +32,16 @@ export const bookAppointment = async (req, res) => {
 
 export const getStudentAppointments = async (req, res) => {
   try {
-    const { studentId } = req.params;
+    const studentId = req.user.id;
+    const { status } = req.query;
 
-    const appointments = await Appointment.find({ studentId }).populate(
+    const filter = { studentId };
+    if (status) {
+      filter.status = status;
+    }
+    const appointments = await Appointment.find(filter).populate(
       "doctorId",
-      "name email"
+      "name email specialization"
     );
 
     res.status(200).json(appointments);
@@ -48,9 +52,15 @@ export const getStudentAppointments = async (req, res) => {
 
 export const getDoctorAppointments = async (req, res) => {
   try {
-    const { doctorId } = req.params;
+    const doctorId = req.user.id;
+    const { status } = req.query;
 
-    const appointments = await Appointment.find({ doctorId }).populate(
+    const filter = { doctorId };
+    if (status) {
+      filter.status = status;
+    }
+
+    const appointments = await Appointment.find(filter).populate(
       "studentId",
       "name email"
     );
