@@ -10,7 +10,7 @@ const MedicalLeaveSchema = new mongoose.Schema(
     healthRecordId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "HealthRecord",
-      //required: true,
+      required: true,
     }, // New Field
     reason: { type: String, required: true }, // Short description of illness
     fromDate: { type: Date, required: true },

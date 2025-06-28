@@ -1,5 +1,6 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { UserProvider } from "./context/UserContext";
 import Navbar from "../src/components/Navbar/Navbar";
 import HomePage from "./Pages/HomePage";
 import PatientForm from "./Pages/PatientForm";
@@ -14,6 +15,7 @@ import SignUp from "./components/Login/SignUp";
 import Certificates from "./components/medicalcertificate/Certificates";
 import Login from "./components/Login/Login";
 import MedicalLeave from "./Pages/MedicalLeave";
+import ErrorBoundary from "./context/ErrorBoundary";
 import MedicalAI from "./components/aifeatures/medicalai";
 import MedicalCertificateGenerator from "./components/aifeatures/MedicalCertificateGenerator";
 import VerificationScreen from "./components/aifeatures/VerificationScreen";
@@ -25,6 +27,8 @@ const Appointment = () => <div className="text-center mt-10">📅 Appointment Pa
 
 const App = () => {
   return (
+    <ErrorBoundary>
+    <UserProvider>
     <Router>
       <Navbar />
       <Routes>  
@@ -46,6 +50,8 @@ const App = () => {
        
       </Routes>
     </Router>
+    </UserProvider>
+    </ErrorBoundary>
   );
 };
 

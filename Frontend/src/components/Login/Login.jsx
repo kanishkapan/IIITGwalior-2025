@@ -1,12 +1,16 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { api } from "../../axios.config.js";
-
+import { UserContext } from "../../context/UserContext";
+import { useNavigate } from "react-router-dom";
 export default function Login() {
+  const { login } = useContext(UserContext);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null); // Reset any previous error
 
     try {
       const response = await api.post(
@@ -14,21 +18,23 @@ export default function Login() {
         { email, password },
         { withCredentials: true } // Important for cookies to be stored
       );
-      
-      //console.log("Success:", response.data);
 
       if (response.status === 200) {
-        const { role } = response.data;
+        const { role, userData } = response.data;
+        login(userData); // Update user context
+
         if (role === "doctor") {
-          window.location.href = "/doctor/dashboard";//to be made
+          navigate ( "/doctor/dashboard");  //to be made
         } else if (role === "student") {
-          window.location.href = "/profile";
-        } else {
-          window.location.href = "/admin/dashboard";// to be made
+          navigate("/profile");
+        }
+        else {
+          navigate("/admin/dashboard");// to be made
         }
       }
     } catch (error) {
-      console.error("Error:", error); 
+      console.error("Error:", error);
+      setError("Invalid email or password");
     }
   };
 
@@ -58,6 +64,9 @@ export default function Login() {
               className="w-full p-4 border rounded-lg focus:ring focus:ring-green-300"
               required
             />
+            {error && (
+              <div className="text-red-500">{error}</div>
+            )}
             <button type="submit" className="w-full mt-4 p-4 bg-black text-white rounded-lg hover:bg-gray-800">
               Login
             </button>
