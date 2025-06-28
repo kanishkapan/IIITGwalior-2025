@@ -1,0 +1,9 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu+Condensed&display=swap');
+@import "tailwindcss";
+
+
+
+body {
+  font-family: 'Ubuntu Condensed', sans-serif;
+}
