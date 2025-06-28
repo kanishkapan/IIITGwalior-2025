@@ -45,6 +45,18 @@ export const updateLeaveStatus = async (req, res) => {
       if (!leave) {
         return res.status(404).json({ message: "Medical leave not found" });
       }
+
+      const io = req.app.get("socketio"); // Get Socket.io instance
+      const studentSocket = req.app.get("onlineUsers").get(leave.studentId.toString());
+
+      if (studentSocket) {
+        console.log("informing patient about the leave application status");
+        studentSocket.emit("leaveStatusUpdate", { message: `Your leave request is ${status}.`,leave });
+      }
+      else {
+        console.log(`Student ${leave.studentId} is offline.`);
+      }
+
   
       res.status(200).json({ message: `Leave ${status} successfully`, leave });
     } catch (error) {

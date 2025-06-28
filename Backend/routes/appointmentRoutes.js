@@ -4,6 +4,7 @@ import {
   getStudentAppointments
 } from "../controllers/appointmentController.js";
 import { authMiddleware } from "../middlewares/authMiddleware.js";
+// import { io } from "../socket.js"; 
 
 export const router = express.Router();
 

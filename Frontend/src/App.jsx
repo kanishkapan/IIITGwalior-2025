@@ -1,7 +1,9 @@
-import React from "react";
+import React,{useEffect} from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { UserProvider } from "./context/UserContext";
 import Navbar from "../src/components/Navbar/Navbar";
+import socket from "./socket";
+
 import HomePage from "./Pages/HomePage";
 import PatientForm from "./Pages/PatientForm";
 import Aibot from "./Pages/Aibot";
@@ -31,12 +33,41 @@ import PrescriptionGenerator from "./components/aitanissa/PrescriptionGenerator"
 import Healthchat from "./components/aitanissa/Healthchat";
 import Noti from "./Pages/Noti";
 import Payments from "./components/Payments/payment";
+import NotiScreen from "./components/Noti/NotiScreen";
 const Home = () => <div className="text-center mt-10">🏠 Welcome to Home</div>;
 const AIBot = () => <div className="text-center mt-10">🤖 AI Bot Page</div>;
 
 const Appointment = () => <div className="text-center mt-10">📅 Appointment Page</div>;
 
 const App = () => {
+  useEffect(() => {
+    // socket.on("connect", () => {
+    //   console.log("WebSocket Connected:", socket.id);
+    // });
+
+    // socket.on("disconnect", () => {
+    //   console.log("WebSocket Disconnected");
+    // });
+
+    socket.on("newAppointment", (data) => {
+      console.log(" New Appointment Notification:", data);
+      alert(" You have a new appointment request!");
+    });
+
+    socket.on("appointmentUpdate", (data) => {
+      console.log("Appointment Update:", data);
+      alert(`Your appointment has been ${data.appointment.status}`);
+    });
+
+    return () => {
+      // socket.off("connect");
+      // socket.off("disconnect");
+      socket.off("newAppointment");
+      socket.off("appointmentUpdate");
+    };
+    
+  }, []);
+
   return (
     <ErrorBoundary>
     <UserProvider>
@@ -53,7 +84,7 @@ const App = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/patient" element={<PatientForm />} />
         <Route path="/telemedicine" element={<Telemedicine />} />
-        <Route path="/video-call" element={<VideoCall />} />
+        {/* <Route path="/video-call" element={<VideoCall />} /> */}
         <Route path="/doctor" element={<DocDash />} />
         <Route path="/leave" element={<MedicalLeave />} />
         <Route path="/certificate" element={<Certificate />} />
@@ -68,6 +99,7 @@ const App = () => {
         <Route path="/prescriptions" element={<PrescriptionGenerator />} />
         <Route path="/noti" element={<Noti />} />
         <Route path="/payment" element={<Payments />} />
+        <Route path="/notiscreen" element={<NotiScreen />} />
 
        
       </Routes>

@@ -26,6 +26,7 @@
     "react-leaflet": "^4.2.1",
     "react-router-dom": "^7.1.5",
     "recharts": "^2.15.1",
+    "socket.io-client": "^4.8.1",
     "viem": "^2.24.1",
     "wagmi": "^2.14.15"
   },

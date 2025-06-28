@@ -48,9 +48,25 @@ export const bookAppointment = async (req, res) => {
     );
 
     await appointment.save();
-    res
-      .status(201)
-      .json({ message: "Appointment booked successfully.", appointment });
+
+    //Notify the doc in realtime
+    const io = req.app.get("socketio"); 
+    const onlineUsers = req.app.get("onlineUsers"); // Get the online users Map
+
+    if (onlineUsers.has(doctorId.toString())) {
+      const doctorSocket = onlineUsers.get(doctorId.toString());
+      console.log(`Sending notification to doctor ${doctorId}`);
+      doctorSocket.emit("newAppointment", {
+        message: "📅 You have a new appointment request!",
+        appointment,
+      });
+    }
+      // } else {
+      //   console.log(`Doctor ${doctorId} is offline.`);
+      // }
+    
+
+    res.status(201).json({ message: "Appointment booked successfully.", appointment });
   } catch (error) {
     console.error("Error booking appointment:", error);
     res.status(500).json({ message: "Server error", error: error.message });
@@ -76,4 +92,6 @@ export const getStudentAppointments = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+
 

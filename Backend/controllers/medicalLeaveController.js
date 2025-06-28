@@ -1,5 +1,7 @@
 // medicalLeaveController.js
 import { MedicalLeave } from "../models/medicalLeaveModel.js";
+import { User } from "../models/index.js";
+
 import { uploadMultipleDocuments } from "../utils/cloudinary.js";
 import { HealthRecord } from "../models/healthRecordModel.js";
 import fs from "fs";
@@ -42,6 +44,22 @@ export const applyMedicalLeave = async (req, res) => {
       reason,
       supportingDocuments,
       status: "pending",
+    });
+
+    // Emit real-time notification to ALL online admins
+    const io = req.app.get("socketio");
+    const onlineUsers = req.app.get("onlineUsers");
+
+    // Find all admins and notify them 
+    onlineUsers.forEach(async(socket, userId) => {
+      const user = await User.findById(userId);
+      if (user && user.role =="admin") {
+        console.log("Informing admin about the leave application");
+        socket.emit("newLeaveRequest", {
+          message: "A student has applied for medical leave!",
+          leaveRequest,
+        });
+      }
     });
 
     res.status(201).json({ 

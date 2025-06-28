@@ -43,7 +43,7 @@ export const updateAppointmentStatus = async (req, res) => {
     appointment.status = status;
     await appointment.save();
 
-    const { doctorId, slotDateTime } = appointment;
+    const { doctorId, slotDateTime,studentId} = appointment;
 
     // Handle slot booking status based on appointment status
     if (status === "confirmed") {
@@ -82,6 +82,36 @@ export const updateAppointmentStatus = async (req, res) => {
       if (!updatedDoctor) {
         console.log("Could not find matching slot for doctor when cancelling");
       }
+    }
+
+     // 🔹 Integrate Socket.io
+     const io = req.app.get("socketio");
+     const onlineUsers = req.app.get("onlineUsers"); // ✅ Get the online users Map
+ 
+     console.log("Appointment Object:", appointment);
+     
+
+     if (onlineUsers.has(studentId.toString())) {
+      const patientSocket = onlineUsers.get(studentId.toString());
+      console.log(`✅ Sending update to patient ${studentId}`);
+      console.log("Patient Socket ID:", patientSocket?.id); // Log socket ID
+
+      //FOR DELAYED/PENDING
+      // let notificationMessage = "";
+      // if (status === "confirmed") {
+      //   notificationMessage = `Your appointment has been confirmed.`;
+      // } else if (status === "cancelled") {
+      //   notificationMessage = `Your appointment has been cancelled.`;
+      // } else if (status === "pending") {
+      //   notificationMessage = `Your appointment is pending and will be rescheduled soon.`;
+      // }
+      // Emit real-time notification to patient
+      patientSocket.emit("appointmentUpdate", {
+        message: `Your appointment has been ${status}`,
+        appointment,
+      });
+    } else {
+      console.log(`❌ Patient ${studentId} is offline. Cannot send update.`);
     }
 
     res.status(200).json({ message: `Appointment ${status} successfully.` });

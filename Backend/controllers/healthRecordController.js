@@ -160,3 +160,34 @@ export const getHealthRecordsadmin = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+
+//Search
+
+
+
+export const searchHealthRecords = async (req, res) => {
+  try {
+    const { query } = req.query;
+    const studentId = req.user.id;
+    console.log("Search query:", query);
+    console.log("Student ID:", studentId);
+
+    const records = await HealthRecord.find({
+      studentId,
+      $or: [
+        { diagnosis: { $regex: query, $options: "i" } },
+        { treatment: { $regex: query, $options: "i" } },
+        { prescription: { $regex: query, $options: "i" } },
+        { externalDoctorName: { $regex: query, $options: "i" } },
+        { externalHospitalName: { $regex: query, $options: "i" } },
+      ],
+    });
+
+    console.log("Records found:", records.length);
+    res.status(200).json(records);
+  } catch (error) {
+    console.error("Error searching health records:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};

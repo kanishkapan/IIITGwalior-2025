@@ -15,6 +15,7 @@ const DoctorTimeSlotSelector = () => {
     '04:00 PM', '05:00 PM', '06:00 PM'
   ];
 
+  // Date selection handler
   const handleDateSelect = (e) => {
     const selectedDate = e.target.value;
     if (!selectedDates.includes(selectedDate)) {
@@ -26,6 +27,7 @@ const DoctorTimeSlotSelector = () => {
     }
   };
 
+  // Remove a selected date
   const handleRemoveDate = (dateToRemove) => {
     setSelectedDates(selectedDates.filter(date => date !== dateToRemove));
     const updatedTimeSlots = { ...timeSlots };
@@ -33,6 +35,7 @@ const DoctorTimeSlotSelector = () => {
     setTimeSlots(updatedTimeSlots);
   };
 
+  // Toggle time slot selection for a specific date
   const toggleTimeSlot = (date, slot) => {
     const currentSlots = timeSlots[date] || [];
     if (currentSlots.includes(slot)) {
@@ -48,6 +51,59 @@ const DoctorTimeSlotSelector = () => {
     }
   };
 
+  // Format data for API submission
+  const formatSlotsForSubmission = () => {
+    const formattedSlots = [];
+    Object.keys(timeSlots).forEach(date => {
+      timeSlots[date].forEach(time => {
+        const [timeValue, period] = time.split(' ');
+        let [hours, minutes] = timeValue.split(':');
+        // Convert to 24-hour format
+        if (period === 'PM' && hours !== '12') {
+          hours = parseInt(hours) + 12;
+        } else if (period === 'AM' && hours === '12') {
+          hours = '00';
+        }
+        const dateTime = new Date(`${date}T${hours}:${minutes}:00`);
+        formattedSlots.push({
+          dateTime,
+          isBooked: false
+        });
+      });
+    });
+    return formattedSlots;
+  };
+
+  // Submit time slots to the API
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage({ text: '', type: '' });
+    try {
+      const formattedSlots = formatSlotsForSubmission();
+      if (formattedSlots.length === 0) {
+        setMessage({ text: 'Please select at least one time slot', type: 'error' });
+        setLoading(false);
+        return;
+      }
+      await api.patch('doctor/slots/update', { slots: formattedSlots });
+      setShowSuccessPopup(true);
+      setTimeout(() => {
+        setShowSuccessPopup(false);
+      }, 3000);
+      setSelectedDates([]);
+      setTimeSlots({});
+    } catch (error) {
+      console.error('Error updating slots:', error);
+      setMessage({ 
+        text: error.response?.data?.message || 'Failed to update time slots', 
+        type: 'error' 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="w-full max-w-4xl mx-auto mt-24 p-4 bg-white rounded-lg shadow relative">
       {showSuccessPopup && (
@@ -56,8 +112,15 @@ const DoctorTimeSlotSelector = () => {
             <div className="flex flex-col items-center">
               <CheckCircle className="text-green-500 w-16 h-16 mb-4" />
               <h3 className="text-xl font-bold text-green-800 mb-2">Success!</h3>
-              <p className="text-green-700 text-center mb-4">Your time slots have been added successfully.</p>
-              <button className="bg-green-600 text-white py-2 px-6 rounded-md hover:bg-green-700" onClick={() => setShowSuccessPopup(false)}>Close</button>
+              <p className="text-green-700 text-center mb-4">
+                Your time slots have been added successfully.
+              </p>
+              <button 
+                className="bg-green-600 text-white py-2 px-6 rounded-md hover:bg-green-700" 
+                onClick={() => setShowSuccessPopup(false)}
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
@@ -68,10 +131,15 @@ const DoctorTimeSlotSelector = () => {
         <h2 className="text-2xl font-bold text-green-800">Add Available Time Slots</h2>
       </div>
       
-      <form>
+      <form onSubmit={handleSubmit}>
         <div className="mb-6">
           <label className="block text-green-700 mb-2 font-medium">Select Date</label>
-          <input type="date" className="w-full p-2 border border-green-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" onChange={handleDateSelect} min={new Date().toISOString().split('T')[0]} />
+          <input 
+            type="date" 
+            className="w-full p-2 border border-green-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+            onChange={handleDateSelect}
+            min={new Date().toISOString().split('T')[0]}
+          />
         </div>
         
         {selectedDates.length > 0 && (
@@ -81,15 +149,27 @@ const DoctorTimeSlotSelector = () => {
               {selectedDates.map(date => (
                 <div key={date} className="border border-green-200 rounded-lg p-4 bg-green-50">
                   <div className="flex justify-between items-center mb-3">
-                    <h4 className="text-md font-medium text-green-800">{new Date(date).toLocaleDateString()}</h4>
-                    <button type="button" className="text-red-500 hover:text-red-700" onClick={() => handleRemoveDate(date)}>Remove</button>
+                    <h4 className="text-md font-medium text-green-800">
+                      {new Date(date).toLocaleDateString()}
+                    </h4>
+                    <button 
+                      type="button" 
+                      className="text-red-500 hover:text-red-700" 
+                      onClick={() => handleRemoveDate(date)}
+                    >
+                      Remove
+                    </button>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                     {timeSlotOptions.map(slot => (
                       <button
                         key={`${date}-${slot}`}
                         type="button"
-                        className={`py-2 px-3 rounded-md text-sm transition-all ease-in-out duration-200 ${timeSlots[date]?.includes(slot) ? 'bg-green-600 text-white' : 'bg-white text-green-700 border border-green-300 hover:bg-green-100'}`}
+                        className={`py-2 px-3 rounded-md text-sm transition-all ease-in-out duration-200 ${
+                          timeSlots[date]?.includes(slot)
+                            ? 'bg-green-600 text-white'
+                            : 'bg-white text-green-700 border border-green-300 hover:bg-green-100'
+                        }`}
                         onClick={() => toggleTimeSlot(date, slot)}
                       >
                         {slot}
@@ -103,11 +183,19 @@ const DoctorTimeSlotSelector = () => {
         )}
         
         {message.text && message.type === 'error' && (
-          <div className="p-3 rounded mb-4 bg-red-100 text-red-700 border border-red-300">{message.text}</div>
+          <div className="p-3 rounded mb-4 bg-red-100 text-red-700 border border-red-300">
+            {message.text}
+          </div>
         )}
         
         <div className="flex justify-end">
-          <button type="submit" className="bg-green-600 text-white py-2 px-6 rounded-md hover:bg-green-700 disabled:bg-gray-400" disabled={loading || selectedDates.length === 0}>{loading ? 'Saving...' : 'Save Time Slots'}</button>
+          <button 
+            type="submit" 
+            className="bg-green-600 text-white py-2 px-6 rounded-md hover:bg-green-700 disabled:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+            disabled={loading || selectedDates.length === 0}
+          >
+            {loading ? 'Saving...' : 'Save Time Slots'}
+          </button>
         </div>
       </form>
     </div>

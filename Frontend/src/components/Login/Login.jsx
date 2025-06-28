@@ -20,9 +20,13 @@ export default function Login() {
       );
 
       if (response.status === 200) {
-        const { role, userData } = response.data;
+        const { role, userData,token } = response.data;
         login(userData); // Update user context
+        if (token) {
+          localStorage.setItem("token", token);  // ✅ Store token manually
+        }
 
+        
         if (role === "doctor") {
           navigate ( "/doctor");  
         } else if (role === "student") {
