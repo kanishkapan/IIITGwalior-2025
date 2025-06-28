@@ -1,6 +1,7 @@
 // medicalLeaveController.js
 import { MedicalLeave } from "../models/medicalLeaveModel.js";
 import { User } from "../models/index.js";
+import { Notification } from "../models/notificationModel.js";
 
 import { uploadMultipleDocuments } from "../utils/cloudinary.js";
 import { HealthRecord } from "../models/healthRecordModel.js";
@@ -49,12 +50,27 @@ export const applyMedicalLeave = async (req, res) => {
     // Emit real-time notification to ALL online admins
     const io = req.app.get("socketio");
     const onlineUsers = req.app.get("onlineUsers");
+    //save in mongo db
+    const studentNotification = await Notification.create({
+      recipientId: req.user.id, 
+      type: "leave",
+      message: "Your leave request has been submitted successfully.",
+    });
+    console.log("$$$$..Saved student noti");
 
     // Find all admins and notify them 
     onlineUsers.forEach(async(socket, userId) => {
       const user = await User.findById(userId);
       if (user && user.role =="admin") {
         console.log("Informing admin about the leave application");
+
+        //storing in mongo db 
+        await Notification.create({
+          recipientId: user._id,  // Store admin ID
+          type: "leave",
+          message: "A student has applied for medical leave!",
+        });
+
         socket.emit("newLeaveRequest", {
           message: "A student has applied for medical leave!",
           leaveRequest,

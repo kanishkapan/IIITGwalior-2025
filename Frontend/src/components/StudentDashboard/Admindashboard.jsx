@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie } from 'recharts';
 import { Bell, Settings, Search, Eye, Calendar, FileText, User, UserPlus, Users, Activity, AlertCircle } from 'lucide-react';
 import {api} from '../../axios.config';
+import Notibell from '../Noti/Notibell';
 const AdminDashboard = () => {
   // Sample data for student leave applications
   const [leaveApplications, setLeaveApplications] = useState([]);
@@ -144,10 +145,13 @@ const AdminDashboard = () => {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">College Medical Admin Dashboard</h1>
           <div className="flex items-center space-x-4">
+        
             <div className="relative">
               <Search className="w-5 h-5 text-gray-400 absolute left-3 top-3" />
+            
               <input type="text" placeholder="Search..." className="pl-10 pr-4 py-2 border rounded-lg" />
             </div>
+            <Notibell className="w-6 h-6 text-gray-400 cursor-pointer" />
           
             <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
               A

@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { api } from "../../axios.config.js";
 import { useNavigate } from "react-router-dom";
+import Notibell from "../Noti/Notibell.jsx";
 
 const DocDash = () => {
   // Sample data for student certificates
@@ -372,7 +373,7 @@ const DocDash = () => {
                 className="pl-10 pr-4 py-2 border rounded-lg"
               />
             </div>
-            <Bell className="w-6 h-6 text-gray-400 cursor-pointer" />
+            <Notibell className="w-6 h-6 text-gray-400 cursor-pointer" />
             <Settings className="w-6 h-6 text-gray-400 cursor-pointer" />
             <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
               D

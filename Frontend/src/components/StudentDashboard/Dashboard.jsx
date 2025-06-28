@@ -10,6 +10,7 @@ import {
   FileText,
   MessageCircle,
 } from "lucide-react";
+import Notibell from "../Noti/Notibell.jsx";
 
 const Dashboard = () => {
   const [healthRecords, setHealthRecords] = useState([]);
@@ -232,6 +233,7 @@ const Dashboard = () => {
         <h2 className="text-xl font-bold text-green-600 mb-6">
           Student Dashboard
         </h2>
+        
         <nav className="space-y-2">
           {[
             { name: "Dashboard", path: "/dashboard" },
@@ -275,7 +277,7 @@ const Dashboard = () => {
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <div className="flex items-center space-x-4">
             <Search className="w-6 h-6 text-gray-400" />
-            <Bell className="w-6 h-6 text-gray-400" />
+            <Notibell className="w-6 h-6 text-gray-400 cursor-pointer" />
             <Settings className="w-6 h-6 text-gray-400" />
           </div>
         </div>

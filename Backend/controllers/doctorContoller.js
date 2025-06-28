@@ -2,7 +2,7 @@ import {
   Appointment,
   HealthRecord,
   MedicalLeave,
-  User,
+  User,Notification
 } from "../models/index.js";
 import { uploadDocument } from "../utils/cloudinary.js";
 import fs from "fs";
@@ -84,6 +84,14 @@ export const updateAppointmentStatus = async (req, res) => {
       }
     }
 
+    //Saving in mongodb
+    const notification = await Notification.create({
+      recipientId: studentId,  
+      type: "appointment",
+      message: `Your appointment has been ${status}`,
+    });
+    console.log("...SAVED...Noti")
+
      // 🔹 Integrate Socket.io
      const io = req.app.get("socketio");
      const onlineUsers = req.app.get("onlineUsers"); // ✅ Get the online users Map
@@ -107,11 +115,11 @@ export const updateAppointmentStatus = async (req, res) => {
       // }
       // Emit real-time notification to patient
       patientSocket.emit("appointmentUpdate", {
-        message: `Your appointment has been ${status}`,
+        message: notification.message,
         appointment,
       });
     } else {
-      console.log(`❌ Patient ${studentId} is offline. Cannot send update.`);
+      console.log(`Patient ${studentId} is offline. Cannot send update.`);
     }
 
     res.status(200).json({ message: `Appointment ${status} successfully.` });

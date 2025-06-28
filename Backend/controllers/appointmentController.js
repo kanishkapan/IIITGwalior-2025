@@ -1,4 +1,4 @@
-import { User, Appointment } from "../models/index.js";
+import { User, Appointment,Notification } from "../models/index.js";
 
 export const bookAppointment = async (req, res) => {
   try {
@@ -48,6 +48,15 @@ export const bookAppointment = async (req, res) => {
     );
 
     await appointment.save();
+
+    //storing in db 
+    const notification = await Notification.create({
+      recipientId: doctorId,
+      type: "appointment",
+      message: "📅 You have a new appointment request!",
+    });
+
+    console.log("✅ SAVED NOTIFICATION:", notification);
 
     //Notify the doc in realtime
     const io = req.app.get("socketio"); 

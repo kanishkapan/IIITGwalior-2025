@@ -9,7 +9,6 @@ import jwt from "jsonwebtoken";
 import connectDB from "./db/database.js";
 import Routes from "./routes/index.js";
 
-
 const app = express();
 dotenv.config();
 connectDB();
@@ -23,6 +22,7 @@ app.use(
   })
 );
 app.use("/api/v1", Routes);
+
 
 // Create an HTTP server and integrate with Socket.io
 const server = http.createServer(app);

@@ -1,6 +1,6 @@
 import express from "express";
 import { signup, login, logout, getAllDoctors, getDoctorAvailableTimeSlots } from "../controllers/userController.js";
-import { searchHealthRecords } from "../controllers/healthRecordController.js";
+import { searchHealthRecords, getSearchSuggestions } from "../controllers/healthRecordController.js";
 import {authMiddleware} from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
@@ -12,7 +12,7 @@ router.post("/logout", logout);
 
 
 router.get("/search", authMiddleware(["student"]),searchHealthRecords);
-
+router.get("/searchSuggestions", authMiddleware(["student"]),getSearchSuggestions);
 
 
 

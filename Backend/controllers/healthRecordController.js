@@ -191,3 +191,35 @@ export const searchHealthRecords = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+
+export const getSearchSuggestions = async (req, res) => {
+  try {
+    const { query } = req.query; // User's input
+    const studentId = req.user.id; // Authenticated user ID
+
+    if (!query) {
+      return res.status(400).json({ message: "Query parameter is required" });
+    }
+
+    // Fetch suggestions based on partial matches
+    const suggestions = await HealthRecord.find({
+      studentId,
+      $or: [
+        { diagnosis: { $regex: query, $options: "i" } },
+        { treatment: { $regex: query, $options: "i" } },
+        { prescription: { $regex: query, $options: "i" } },
+        { externalDoctorName: { $regex: query, $options: "i" } },
+        { externalHospitalName: { $regex: query, $options: "i" } },
+      ],
+    }).limit(5); // Limit the number of suggestions
+
+    // Extract unique suggestions (e.g., diagnosis names)
+    const uniqueSuggestions = [...new Set(suggestions.map(s => s.diagnosis))];
+
+    res.status(200).json(uniqueSuggestions);
+  } catch (error) {
+    console.error("Error fetching search suggestions:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};

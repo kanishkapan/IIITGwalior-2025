@@ -1,6 +1,7 @@
 import { MedicalLeave } from "../models/medicalLeaveModel.js";
 import { User } from "../models/userModel.js";
 import { HealthRecord } from "../models/healthRecordModel.js";
+import{Notification} from "../models/notificationModel.js"
 
 export const getMedicalLeaveApplications = async (req, res) => {
     try {
@@ -33,9 +34,14 @@ export const updateLeaveStatus = async (req, res) => {
       const { status } = req.body; // 'approved' or 'rejected'
   
       if (!["approved", "rejected"].includes(status)) {
+        console.log("invalid status recieved ")
         return res.status(400).json({ message: "Invalid status" });
       }
-  
+      console.log("Admin User:", req.user);
+      if (!req.user || !req.user.id) {
+        return res.status(401).json({ message: "Unauthorized: Admin ID missing" });
+      }
+
       const leave = await MedicalLeave.findByIdAndUpdate(
         id,
         { status, approvedBy: req.user.id }, // Assuming `req.user.id` contains admin ID
@@ -44,14 +50,22 @@ export const updateLeaveStatus = async (req, res) => {
   
       if (!leave) {
         return res.status(404).json({ message: "Medical leave not found" });
+        console.log("leave not found");
       }
-
+      console.log("request updated");
+      //store in mongodb
+      const notification = await Notification.create({
+        recipientId: leave.studentId,
+        type: "leave",
+        message: `Your leave request has been ${status}.`,
+      });
+      console.log("stored in db");
       const io = req.app.get("socketio"); // Get Socket.io instance
       const studentSocket = req.app.get("onlineUsers").get(leave.studentId.toString());
 
       if (studentSocket) {
         console.log("informing patient about the leave application status");
-        studentSocket.emit("leaveStatusUpdate", { message: `Your leave request is ${status}.`,leave });
+        studentSocket.emit("leaveStatusUpdate", { message:notification.message,leave });
       }
       else {
         console.log(`Student ${leave.studentId} is offline.`);
