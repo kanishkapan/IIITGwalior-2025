@@ -2,10 +2,10 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import React from "react";
 const patients = [
-  { id: 1, name: "Rahul Verma", license: "MED12345", hash: "0xafvf498dty455ign230" },
-  { id: 2, name: "John Doe", license: "MED67890", hash: "852eb511f9a5c72e13c5" },
-  { id: 3, name: "Alice Brown", license: "MED11223", hash: "ac7f747bfe9e9a06bac7bf60238f24" },
-  { id: 4, name: "Kanishka Pandey ", license: "MED99999", hash: "Not Found" },
+  { id: 1, name: "Kanishka  Pandey", license: "MED12345", hash: "0xafvf498dty455ign230" },
+  { id: 2, name: "Ayush Gupta", license: "MED67890", hash: "852eb511f9a5c72e13c5" },
+  { id: 3, name: "Rahul Verma", license: "MED11223", hash: "ac7f747bfe9e9a06bac7bf60238f24" },
+  { id: 4, name: "Vaibhav Mandloi ", license: "MED99999", hash: "Not Found" },
   { id: 5, name: "Urvashi Marmat ", license: "MED88888", hash: "Not Found" },
 ];
 

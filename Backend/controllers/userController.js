@@ -1,7 +1,6 @@
-import { User } from "../models/userModel.js";
-import jwt from "jsonwebtoken";
-import bcrypt from "bcrypt";
-import mongoose from "mongoose";
+import { User } from '../models/index.js';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 // Generate JWT Token & Set Cookie
 const generateToken = (res, user) => {
   const token = jwt.sign(

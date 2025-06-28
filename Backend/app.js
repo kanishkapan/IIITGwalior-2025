@@ -12,7 +12,7 @@ import testRoutes from "./routes/testRoutes.js";
 
 
 const app = express();
-dotenv.config();
+dotenv.config();  
 connectDB();
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));

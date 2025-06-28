@@ -3,501 +3,335 @@ from flask_cors import CORS
 from pymongo import MongoClient
 from bson import ObjectId
 import google.generativeai as genai
-import os
-import jwt
+import os, jwt, traceback
 from functools import wraps
 from dotenv import load_dotenv
+
+# Note: You'll need to implement these services or comment them out for now
+# import encryptionService  # Use your existing Node-style service or Python port
+# import ipfsService        # Use your existing service to fetch encrypted payload
+
 load_dotenv()
 
-# Initialize Flask app
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
 
-# MongoDB Connection
-MONGO_URI = "mongodb+srv://tannisa:YXmXxB8C19yRxAFr@arogya-vault.3bg8o.mongodb.net/arogya-vault"
-client = MongoClient(MONGO_URI)
+# DB setup
+client = MongoClient(os.getenv("MONGO_URI"))
 db = client["arogya-vault"]
-db = client["arogya-vault"]
-collection = db["healthrecords"]
-collection2=db["medicalleaves"]
 users_collection = db["users"]
-appointments_collection = db["appointments"]
 health_records_collection = db["healthrecords"]
 leave_collection = db["medicalleaves"]
+appointments_collection = db["appointments"]
 
+# Gemini + JWT secrets
+genai.configure(api_key=os.getenv("GEMINI_API"))
+model = genai.GenerativeModel("gemini-2.0-flash-exp")  # Updated model name
+JWT_SECRET = os.getenv("JWT_SECRET")
+assert JWT_SECRET, "Missing JWT_SECRET"
 
-GEMINI_API_KEY = os.getenv("GEMINI_API")
-JWT_SECRET = os.getenv("JWT_SECRET")  # Add this to your .env file
-
-if not GEMINI_API_KEY:
-    raise ValueError("❌ GEMINI_API key is missing! Set it in the .env file.")
-
-if not JWT_SECRET:
-    raise ValueError("❌ JWT_SECRET is missing! Set it in the .env file.")
-
-# Configure Gemini AI
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel("gemini-1.5-pro")
-
-# Helper function to fetch user names by ID
-def get_user_name(user_id):
-    user = users_collection.find_one({"_id": ObjectId(user_id)}, {"name": 1})
-    return user["name"] if user else "Unknown"
-
-# Auth middleware function with updated token structure
+# Auth middleware
 def auth_middleware(roles=[]):
     def decorator(f):
         @wraps(f)
-        def decorated_function(*args, **kwargs):
-            print("---- Auth Middleware Debug ----")
-            print("All cookies:", request.cookies)
-            token = request.cookies.get('jwt')
-            print("JWT cookie present:", token is not None)
-            
+        def wrapper(*args, **kwargs):
+            token = request.cookies.get("jwt") or request.headers.get("Authorization", "").split("Bearer ")[-1]
             if not token:
-                # Also check Authorization header as fallback
-                auth_header = request.headers.get('Authorization')
-                if auth_header and auth_header.startswith('Bearer '):
-                    token = auth_header.split(' ')[1]
-                    print("Using token from Authorization header")
-                else:
-                    print("No JWT token found in cookies or Authorization header")
-                    return jsonify({"message": "Unauthorized"}), 401
-                
+                return jsonify({"message": "Unauthorized"}), 401
             try:
-                # Decode the JWT token - ensure proper options
                 decoded = jwt.decode(token, JWT_SECRET, algorithms=["HS256"], options={"require": ["exp"]})
-                print(f"JWT decoded successfully. User ID: {decoded.get('id')}, Role: {decoded.get('role')}")
-
-                # Store user in Flask's g object - note we're mapping 'id' to '_id'
-                g.user = {
-                    "_id": decoded.get('id'),  # Map 'id' from token to '_id' in g.user
-                    "role": decoded.get('role')
-                }
-                
-                # Check if user has required role
-                if roles and g.user.get('role') not in roles:
-                    print(f"Access denied. User role: {g.user.get('role')}, Required roles: {roles}")
+                g.user = {"_id": decoded["id"], "role": decoded["role"]}
+                if roles and g.user["role"] not in roles:
                     return jsonify({"message": "Access Denied"}), 403
-                    
                 return f(*args, **kwargs)
-                
             except jwt.ExpiredSignatureError:
-                print("Token expired")
                 return jsonify({"message": "Token expired"}), 401
             except jwt.InvalidTokenError as e:
-                print(f"Invalid token: {str(e)}")
                 return jsonify({"message": f"Invalid token: {str(e)}"}), 403
             except Exception as e:
-                print(f"Error: {str(e)}")
+                traceback.print_exc()
                 return jsonify({"message": f"Internal Server Error: {str(e)}"}), 500
-                
-        return decorated_function
+        return wrapper
     return decorator
 
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            print("---- Auth Middleware Debug ----")
-            print("All cookies:", request.cookies)
-            token = request.cookies.get('jwt')
-            print("JWT cookie present:", token is not None)
-            
-            if not token:
-                # Also check Authorization header as fallback
-                auth_header = request.headers.get('Authorization')
-                if auth_header and auth_header.startswith('Bearer '):
-                    token = auth_header.split(' ')[1]
-                    print("Using token from Authorization header")
-                else:
-                    print("No JWT token found in cookies or Authorization header")
-                    return jsonify({"message": "Unauthorized"}), 401
-                
-            try:
-                # Decode the JWT token - matched to Express structure
-                decoded = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
-                print(f"JWT decoded successfully. User ID: {decoded.get('id')}, Role: {decoded.get('role')}")
-                
-                # Store user in Flask's g object - note we're mapping 'id' to '_id'
-                g.user = {
-                    "_id": decoded.get('id'),  # Map 'id' from token to '_id' in g.user
-                    "role": decoded.get('role')
-                }
-                
-                # Check if user has required role
-                if roles and g.user.get('role') not in roles:
-                    print(f"Access denied. User role: {g.user.get('role')}, Required roles: {roles}")
-                    return jsonify({"message": "Access Denied"}), 403
-                    
-                return f(*args, **kwargs)
-                
-            except jwt.ExpiredSignatureError:
-                print("Token expired")
-                return jsonify({"message": "Token expired"}), 401
-            except jwt.InvalidTokenError as e:
-                print(f"Invalid token: {str(e)}")
-                return jsonify({"message": f"Invalid token: {str(e)}"}), 403
-            except Exception as e:
-                print(f"Error: {str(e)}")
-                return jsonify({"message": f"Internal Server Error: {str(e)}"}), 500
-                
-        return decorated_function
-    return decorator
+# Helpers
+def get_user_name(uid):
+    if not uid:
+        return "Unknown"
+    try:
+        u = users_collection.find_one({"_id": ObjectId(uid)}, {"name": 1})
+        return u["name"] if u else "Unknown"
+    except Exception as e:
+        print(f"Error getting user name: {e}")
+        return "Unknown"
 
-# Helper function to convert MongoDB ObjectId to string
-def convert_objectid(data):
-    """Recursively converts ObjectId fields to strings in a dictionary or list"""
-    if isinstance(data, list):
-        return [convert_objectid(doc) for doc in data]
-    if isinstance(data, dict):
-        return {k: str(v) if isinstance(v, ObjectId) else v for k, v in data.items()}
-    return data
+def decrypt_record(r, private_key=None):
+    """
+    For now, return the record as-is since encryption services aren't available
+    You can implement this later when you have the encryption services ready
+    """
+    # if r.get("isEncrypted") and r.get("ipfsHash"):
+    #     pkg = ipfsService.retrieveHealthRecord(r["ipfsHash"], private_key)
+    #     return pkg  # decrypted full contents
+    return r
 
-# Debug endpoint to test authentication
-@app.route("/auth-test", methods=["GET"])
-@auth_middleware([])  # No role restriction for testing
-def auth_test():
-    """Simple endpoint to test if authentication works"""
+# Health check endpoint
+@app.route("/", methods=["GET"])
+def health_check():
     return jsonify({
-        "message": "Authentication successful!",
-        "user_id": g.user.get('_id'),
-        "role": g.user.get('role')
+        "status": "AI Server is running",
+        "endpoints": [
+            "/ask_question",
+            "/leaverelated", 
+            "/doctor_insights"
+        ]
     })
 
-@app.route("/disease_prediction", methods=["POST"])
-def disease_prediction():
-    # No auth required for this endpoint
-    try:
-        data = request.json
-        symptoms = data.get("symptoms")
-
-        if not symptoms:
-            return jsonify({"error": "Symptoms are required"}), 400
-
-        # Convert symptoms list to a formatted string
-        symptoms_text = ", ".join(symptoms)
-
-        # Secure Gemini AI prompt
-        gemini_prompt = f"""
-        A patient is experiencing the following symptoms: {symptoms_text}.
-        Based on these symptoms, predict the most likely disease or condition.
-        Provide a detailed explanation along with possible treatments.
-        Do not include any technical terms, IDs, or unnecessary database details.
-        """
-
-        # Generate response using Gemini AI
-        response = model.generate_content(gemini_prompt)
-        final_prediction = response.text if response and response.text else "Gemini AI could not generate a prediction."
-
-        return jsonify({"status": "success", "prediction": final_prediction})
-
-    except Exception as e:
-        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
-
-
-# ✅ AI-Powered Medical Record Retrieval (No IDs)
-from bson import ObjectId
-from flask import request, jsonify, g
-import traceback
-
+# 1. Student: Ask questions about medical history
 @app.route("/ask_question", methods=["POST"])
 @auth_middleware(["student"])
 def ask_question():
     try:
-        data = request.json
-        print("Received JSON:", data)
-
-        user_question = data.get("question")
-        if not user_question:
+        q = request.json.get("question") or ""
+        if not q:
             return jsonify({"error": "Question is required"}), 400
-
-        # Get student ID from JWT and validate
-        student_id = g.user.get('_id')
-        print(f"Using student ID from token: {student_id}")
-        if not student_id:
-            return jsonify({"error": "Invalid user ID in token"}), 400
-
-        # Fetch student name
-        student = users_collection.find_one({"_id": ObjectId(student_id)}, {"name": 1})
-        student_name = student["name"] if student else "Unknown Patient"
-        print(f"Student name: {student_name}")
-
-        # Fetch medical records
-        records = list(collection.find({"studentId": ObjectId(student_id)}))
-        print(f"Medical records found: {len(records)}")
-
-        if not records:
-            return jsonify({"error": "No medical history found for this patient"}), 404
-
-        enriched_records = []
-        for record in records:
-            doctor_name = "Unknown Doctor"
-            doctor_id = record.get("doctorId")
-
-            if doctor_id:
-                try:
-                    doctor = users_collection.find_one({"_id": ObjectId(doctor_id)}, {"name": 1})
-                    if doctor and doctor.get("name"):
-                        doctor_name = doctor["name"]
-                    else:
-                        # Fallback: check for externalDoctorName
-                        external_name = record.get("externalDoctorName")
-                        if external_name:
-                            doctor_name = external_name
-                except Exception as doc_error:
-                    print(f"Error fetching doctor by ID {doctor_id}: {doc_error}")
-                    external_name = record.get("externalDoctorName")
-                    if external_name:
-                        doctor_name = external_name
-            else:
-                # No doctorId, check for external name
-                external_name = record.get("externalDoctorName")
-                if external_name:
-                    doctor_name = external_name
-
-            enriched_records.append({
-                "Date": str(record.get("createdAt", "Unknown")),
-                "Diagnosis": record.get("diagnosis", "Not specified"),
+        
+        uid = g.user["_id"]
+        user = users_collection.find_one({"_id": ObjectId(uid)})
+        
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        # For now, skip private key requirement since encryption services aren't available
+        # priv = user.get("decryptedPrivateKey")
+        # if not priv:
+        #     return jsonify({"error": "Missing private key for decryption"}), 403
+        
+        recs = list(health_records_collection.find({"studentId": ObjectId(uid)}))
+        enriched = []
+        
+        for r in recs:
+            # Skip decryption for now
+            dec = decrypt_record(r)
+            doctor_name = get_user_name(r.get("doctorId")) if r.get("doctorId") else r.get("externalDoctorName", "External Doctor")
+            
+            enriched.append({
+                "Date": str(r.get("date", r.get("createdAt", "Unknown"))),
+                "Diagnosis": dec.get("diagnosis", "Not specified"),
+                "Treatment": dec.get("treatment", "Not specified"),
+                "Prescription": dec.get("prescription", "Not specified"),
                 "Doctor": doctor_name,
-                "Treatment": record.get("treatment", "Not specified"),
-                "Prescription": record.get("prescription", "Not specified")
+                "Hospital": r.get("externalHospitalName", "Internal")
             })
-
-        # Secure Gemini AI prompt
-        gemini_prompt = f"""
-        You are assisting {student_name} with their medical history.
-        Do **not** include any database-related terms, IDs, or unnecessary details.
-
-        Patient: {student_name}
-
-        Medical History:
-        {enriched_records}
-
-        Answer the following question in a natural and professional manner:
-        "{user_question}"
+        
+        if not enriched:
+            return jsonify({
+                "status": "success", 
+                "answer": "I don't have any medical history records for you yet. Please add some health records first."
+            })
+        
+        prompt = f"""
+        You are a helpful medical AI assistant. Based on the patient's medical history, answer their question.
+        
+        Patient: {user.get('name', 'Patient')}
+        Medical History: {enriched}
+        
+        Patient's Question: "{q}"
+        
+        Please provide a helpful response based on their medical history. If the question requires professional medical advice, remind them to consult with a healthcare provider.
         """
-
-        print("Prompt for Gemini:", gemini_prompt)
-
-        # --- GENERATE RESPONSE USING GEMINI ---
-        try:
-            response = model.generate_content(gemini_prompt)
-            final_answer = response.text if response and hasattr(response, 'text') else "I couldn't generate an answer."
-        except Exception as ai_error:
-            print("Gemini API error:", ai_error)
-            traceback.print_exc()
-            return jsonify({"error": "Failed to generate response using Gemini"}), 500
-
-        return jsonify({"status": "success", "answer": final_answer})
-
+        
+        resp = model.generate_content(prompt)
+        return jsonify({"status": "success", "answer": resp.text})
+        
     except Exception as e:
-        print("Error in /ask_question:", e)
         traceback.print_exc()
-        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+        return jsonify({"error": str(e)}), 500
 
+# 2. Student: Ask about leave history
 @app.route("/leaverelated", methods=["POST"])
 @auth_middleware(["student"])
 def leave_related_question():
     try:
         data = request.json
         user_question = data.get("question")
-        
-        # Get student ID from the JWT token and convert to ObjectId
         student_id = g.user.get('_id')
+        
         print(f"Using student ID from token: {student_id}")
-
+        
         if not user_question:
             return jsonify({"error": "Question is required"}), 400
-
-        # Fetch leave records - convert string ID to ObjectId
-        records = list(collection2.find({"studentId": ObjectId(student_id)}))
-        if not records:
-            return jsonify({"error": "No leave history found for this student"}), 404
-
-        formatted_records = convert_objectid(records)
-
-        # Prepare Gemini AI prompt
+        
+        # Get leave records (without encryption for now)
+        leave_records = list(leave_collection.find({"studentId": ObjectId(student_id)}))
+        
+        if not leave_records:
+            return jsonify({
+                "status": "success",
+                "answer": "You don't have any medical leave history yet."
+            })
+        
+        formatted_records = []
+        for record in leave_records:
+            try:
+                # For now, use records as-is without decryption
+                formatted_records.append({
+                    "reason": record.get("reason", "Not specified"),
+                    "startDate": str(record.get("startDate", "Unknown")),
+                    "endDate": str(record.get("endDate", "Unknown")),
+                    "status": record.get("status", "Unknown"),
+                    "doctorNote": record.get("doctorNote", "No note"),
+                    "createdAt": str(record.get("createdAt", "Unknown"))
+                })
+            except Exception as record_error:
+                print(f"Error processing record: {record_error}")
+                continue
+        
+        if not formatted_records:
+            return jsonify({"error": "Could not process leave records"}), 500
+        
+        # Prompt to Gemini
         gemini_prompt = f"""
-        The following is the student's leave record history:
+        You are a helpful AI assistant for a college health management system.
+        
+        The following is the student's medical leave history:
         {formatted_records}
         
         Based on this data, answer the following question:
         "{user_question}"
+        
+        Provide helpful information about their leave history and any patterns or insights.
         """
-
-        # Generate response using Gemini AI
+        
         response = model.generate_content(gemini_prompt)
-
-        final_answer = response.text if response and response.text else "Gemini AI could not generate an answer."
-
+        final_answer = response.text if response and response.text else "I couldn't generate an answer for your question."
+        
         return jsonify({"status": "success", "answer": final_answer})
-
+        
     except Exception as e:
+        traceback.print_exc()
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
-    
-
-# ✅ AI-Powered Doctor Insights (Secure)
+# 3. Doctor: Ask for professional insights
 @app.route("/doctor_insights", methods=["POST"])
 @auth_middleware(["doctor"])
 def doctor_insights():
     try:
-        data = request.json
-        user_question = data.get("question")
-
-        # Get doctor ID from the JWT token and convert to ObjectId
-        doctor_id = g.user.get('_id')
-        print(f"Using doctor ID from token: {doctor_id}")
-
-        if not user_question:
+        q = request.json.get("question") or ""
+        if not q:
             return jsonify({"error": "Question is required"}), 400
-
-        # Fetch doctor details including available slots
-        doctor = users_collection.find_one({"_id": ObjectId(doctor_id)}, {"name": 1, "availableSlots": 1})
-        if not doctor:
+        
+        did = g.user["_id"]
+        doc = users_collection.find_one({"_id": ObjectId(did)})
+        
+        if not doc:
             return jsonify({"error": "Doctor not found"}), 404
         
-        doctor_name = doctor.get("name", "Unknown Doctor")
-        available_slots = doctor.get("availableSlots", [])
-
-        # Extract only non-booked slots
-        free_slots = [slot["dateTime"] for slot in available_slots if not slot.get("isBooked", True)]
-
-        # Fetch doctor's upcoming appointments
-        appointments = list(appointments_collection.find({"doctorId": ObjectId(doctor_id)}))
-        enriched_appointments = []
-        for appointment in appointments:
-            student_name = get_user_name(appointment["studentId"])
+        # Skip private key requirement for now
+        # priv = doc.get("decryptedPrivateKey")
+        # if not priv:
+        #     return jsonify({"error": "Missing private key to decrypt patient records"}), 403
+        
+        name = doc.get("name", "Doctor")
+        specialization = doc.get("specialization", "General")
+        slots = doc.get("availableSlots", [])
+        
+        # Get appointments for this doctor
+        appts = list(appointments_collection.find({"doctorId": ObjectId(did)}))
+        
+        # Get health records created by this doctor
+        recs = list(health_records_collection.find({"doctorId": ObjectId(did)}))
+        
+        enriched_recs = []
+        for r in recs:
+            dec = decrypt_record(r)  # Skip decryption for now
+            patient_name = get_user_name(r.get("studentId"))
             
-            # Handle the single slotDateTime field
-            appointment_time = appointment.get("slotDateTime", "Unknown")
-            
-            enriched_appointments.append({
-                "Patient": student_name,
-                "DateTime": appointment_time,
-                "Status": appointment.get("status", "Unknown")
+            enriched_recs.append({
+                "Patient": patient_name,
+                "Diagnosis": dec.get("diagnosis", "Not specified"),
+                "Treatment": dec.get("treatment", "Not specified"), 
+                "Prescription": dec.get("prescription", "Not specified"),
+                "Date": str(r.get("date", r.get("createdAt", "Unknown")))
             })
-
-        # Fetch health records of treated patients
-        health_records = list(health_records_collection.find({"doctorId": ObjectId(doctor_id)}))
-        enriched_health_records = []
-        for record in health_records:
-            student_name = get_user_name(record["studentId"])
-            
-            # Try multiple potential date field names
-            record_date = record.get("createdAt") or record.get("date") or record.get("dateTime") or record.get("timestamp") or "Unknown"
-            
-            enriched_health_records.append({
-                "Patient": student_name,
-                "Diagnosis": record.get("diagnosis", "Not specified"),
-                "Treatment": record.get("treatment", "Not specified"),
-                "Prescription": record.get("prescription", "Not specified"),
-                "DateTime": record_date
+        
+        # Format appointments
+        formatted_appts = []
+        for appt in appts:
+            patient_name = get_user_name(appt.get("studentId"))
+            formatted_appts.append({
+                "Patient": patient_name,
+                "DateTime": str(appt.get("slotDateTime", "Unknown")),
+                "Status": appt.get("status", "Unknown")
             })
-
-        # AI Prompt (Using consistent DateTime field names)
-        gemini_prompt = f"""
-        You are assisting Dr. {doctor_name} with patient records.
-
-        Available Appointment Slots:
-        {free_slots}
-
-        Your Upcoming Appointments:
-        {enriched_appointments}
-
-        Your Past Treatments:
-        {enriched_health_records}
-
-        Answer the following question:
-        "{user_question}"
+        
+        prompt = f"""
+        You are an AI assistant helping Dr. {name}, a {specialization} specialist.
+        
+        Doctor Information:
+        - Name: Dr. {name}
+        - Specialization: {specialization}
+        - Available slots: {len(slots)} slots configured
+        
+        Recent Appointments: {formatted_appts}
+        Patient Records: {enriched_recs}
+        
+        Doctor's Question: "{q}"
+        
+        Please provide professional insights based on the available data. Focus on patterns, recommendations, and professional medical perspectives.
         """
-
-        # Add debugging to see what's being passed to the AI
-        print(f"Sending prompt to Gemini AI:\n{gemini_prompt}")
-
-        response = model.generate_content(gemini_prompt)
-        final_answer = response.text if response and response.text else "I couldn't generate an answer."
-
-        return jsonify({"status": "success", "answer": final_answer})
-
+        
+        resp = model.generate_content(prompt)
+        return jsonify({"status": "success", "answer": resp.text})
+        
     except Exception as e:
-        print(f"Doctor insights error: {str(e)}")
-        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+    
+
+# Update the disease_prediction endpoint to remove auth requirement
+@app.route("/disease_prediction", methods=["POST"])
+def disease_prediction():
     try:
         data = request.json
-        user_question = data.get("question")
-
-        # Get doctor ID from the JWT token and convert to ObjectId
-        doctor_id = g.user.get('_id')
-        print(f"Using doctor ID from token: {doctor_id}")
-
-        if not user_question:
-            return jsonify({"error": "Question is required"}), 400
-
-        # Fetch doctor details including available slots
-        doctor = users_collection.find_one({"_id": ObjectId(doctor_id)}, {"name": 1, "availableSlots": 1})
-        if not doctor:
-            return jsonify({"error": "Doctor not found"}), 404
+        symptoms = data.get("symptoms", [])
+        additional_info = data.get("additionalInfo", "")
         
-        doctor_name = doctor.get("name", "Unknown Doctor")
-        available_slots = doctor.get("availableSlots", [])
-
-        # Extract only non-booked slots
-        free_slots = [slot["dateTime"] for slot in available_slots if not slot.get("isBooked", True)]
-
-        # Fetch doctor's upcoming appointments
-        appointments = list(appointments_collection.find({"doctorId": ObjectId(doctor_id)}))
-        enriched_appointments = []
-        for appointment in appointments:
-            student_name = get_user_name(appointment["studentId"])
-            enriched_appointments.append({
-                "Patient": student_name,
-                "Date": appointment.get("date", "Unknown"),
-                "Time": appointment.get("timeSlot", "Unknown"),
-                "Status": appointment.get("status", "Unknown")
-            })
-
-        # Fetch health records of treated patients
-        health_records = list(health_records_collection.find({"doctorId": ObjectId(doctor_id)}))
-        enriched_health_records = []
-        for record in health_records:
-            student_name = get_user_name(record["studentId"])
-            enriched_health_records.append({
-                "Patient": student_name,
-                "Diagnosis": record.get("diagnosis", "Not specified"),
-                "Treatment": record.get("treatment", "Not specified"),
-                "Prescription": record.get("prescription", "Not specified"),
-                "Date": record.get("createdAt", "Unknown")
-            })
-
-        # AI Prompt (Ensuring Available Slots are Passed)
-        gemini_prompt = f"""
-        You are assisting Dr. {doctor_name} with patient records.
-
-        Available Appointment Slots:
-        {free_slots}
-
-        Your Upcoming Appointments:
-        {enriched_appointments}
-
-        Your Past Treatments:
-        {enriched_health_records}
-
-        Answer the following question:
-        "{user_question}"
+        if not symptoms:
+            return jsonify({"error": "Symptoms are required for prediction"}), 400
+        
+        # Create prompt for Gemini without user-specific data
+        prompt = f"""
+        You are a medical AI assistant helping with disease prediction based on symptoms.
+        
+        Current Symptoms: {', '.join(symptoms)}
+        Additional Information: {additional_info}
+        
+        Based on the provided symptoms, please:
+        1. Suggest possible conditions/diseases (with confidence levels)
+        2. Recommend immediate actions or precautions
+        3. Suggest when to seek medical attention
+        4. Provide general health advice
+        
+        Important: Always emphasize that this is not a substitute for professional medical diagnosis and the patient should consult a healthcare provider for proper evaluation.
+        
+        Format your response in a clear, structured manner.
         """
-
-        response = model.generate_content(gemini_prompt)
-        final_answer = response.text if response and response.text else "I couldn't generate an answer."
-
-        return jsonify({"status": "success", "answer": final_answer})
-
+        
+        response = model.generate_content(prompt)
+        
+        return jsonify({
+            "status": "success",
+            "prediction": response.text,
+            "symptoms_analyzed": symptoms,
+            "timestamp": str(ObjectId().generation_time)
+        })
+        
     except Exception as e:
+        traceback.print_exc()
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
 
-  
-
-# Run Flask app
 if __name__ == "__main__":
-    app.run(host="localhost", port=5000, debug=True)
+    port = int(os.getenv("AI_PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)

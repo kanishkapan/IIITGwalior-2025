@@ -1,67 +1,114 @@
-import { HealthRecord } from "../models/healthRecordModel.js";
-import { uploadMultipleDocuments } from "../utils/cloudinary.js";
-import fs from 'fs';
+import { HealthRecord, User } from '../models/index.js';
+import encryptionService from '../services/encryptionService.js';
+import blockchainService from '../services/blockchainService.js';
+import ipfsService from '../services/ipfsService.js';
 
-// Create a new health record
+// Create encrypted health record
 export const createHealthRecord = async (req, res) => {
   try {
-    console.log("Request Body:", req.body);
-
-    const { diagnosis, treatment, prescription, externalDoctorName, externalHospitalName } = req.body;
-    const studentId = req.user.id;
-    const isManualUpload = req.body.isManualUpload === "true"; // Get student ID from authenticated user
-    let doctorId;
-
-    if (isManualUpload) {
-      doctorId = null;
-    } else if (!req.body.doctorId || req.body.doctorId === "") {
-      return res.status(400).json({ message: "Doctor ID is required" });
-    } else {
-      doctorId = req.body.doctorId;
-    }
-
-    if (!diagnosis || !treatment) {
-      return res.status(400).json({ message: "Diagnosis and treatment are required" });
-    }
-
-    let attachments = [];
-    if (req.files && req.files.length > 0) {
-      console.log("Files received:", req.files);
-      const filePaths = req.files.map(file => file.path);
-      const uploadResults = await uploadMultipleDocuments(filePaths);
-      console.log("Upload results:", uploadResults);
+    console.log('=== HEALTH RECORD CREATION DEBUG ===');
+    console.log('Request body:', req.body);
+    console.log('User from token:', req.user);
     
-      attachments = uploadResults.map(result => ({
-        url: result.secure_url,
-        publicId: result.public_id,
-        format: result.format
-      }));
-      // Clean up temp files after upload
-      req.files.forEach(file => {
-        fs.unlink(file.path, (err) => {
-          if (err) console.log(`Failed to delete temp file: ${file.path}`, err);
-        });
+    const { 
+      doctorId, 
+      diagnosis, 
+      treatment, 
+      prescription, 
+      date,
+      isManualUpload,
+      externalDoctorName,
+      externalHospitalName 
+    } = req.body;
+    
+    // Get studentId from the logged-in user (not from request body)
+    const studentId = req.user.id;
+    
+    console.log('Student ID (from token):', studentId);
+    console.log('Doctor ID (from form):', doctorId);
+    console.log('Is manual upload:', isManualUpload);
+    
+    // Verify the logged-in user is a student
+    const student = await User.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ 
+        message: 'Student not found',
+        studentId: studentId
       });
     }
-
-    const newRecord = new HealthRecord({
+    
+    if (student.role !== 'student') {
+      return res.status(403).json({ 
+        message: 'Only students can create health records',
+        userRole: student.role
+      });
+    }
+    
+    console.log('Found student:', student.name);
+    
+    let doctor = null;
+    
+    // Handle internal vs external doctor
+    if (!isManualUpload || isManualUpload === 'false') {
+      // Internal doctor - verify doctor exists
+      if (!doctorId) {
+        return res.status(400).json({ message: 'Doctor ID is required for internal records' });
+      }
+      
+      doctor = await User.findById(doctorId);
+      if (!doctor || doctor.role !== 'doctor') {
+        return res.status(404).json({ 
+          message: 'Doctor not found',
+          doctorId: doctorId
+        });
+      }
+      console.log('Found doctor:', doctor.name);
+    } else {
+      // External/manual upload - validate external doctor info
+      if (!externalDoctorName || !externalHospitalName) {
+        return res.status(400).json({ 
+          message: 'External doctor name and hospital name are required for manual uploads' 
+        });
+      }
+      console.log('External doctor:', externalDoctorName, 'at', externalHospitalName);
+    }
+    
+    // Create health record
+    const healthRecordData = {
       studentId,
-      doctorId,
       diagnosis,
       treatment,
       prescription,
-      isManualUpload,
-      externalDoctorName,
-      externalHospitalName,
-      attachments, // Handle file uploads
+      date: date ? new Date(date) : new Date(),
+      isManualUpload: isManualUpload === 'true' || isManualUpload === true
+    };
+    
+    // Add doctor info based on type
+    if (healthRecordData.isManualUpload) {
+      healthRecordData.externalDoctorName = externalDoctorName;
+      healthRecordData.externalHospitalName = externalHospitalName;
+    } else {
+      healthRecordData.doctorId = doctorId;
+    }
+    
+    const healthRecord = new HealthRecord(healthRecordData);
+    await healthRecord.save();
+    
+    console.log('Health record created:', healthRecord._id);
+    
+    res.status(201).json({
+      message: "Health record created successfully",
+      recordId: healthRecord._id,
+      student: student.name,
+      doctor: doctor ? doctor.name : externalDoctorName
     });
-    console.log("Attachments before saving:", attachments);
-
-    await newRecord.save();
-    res.status(201).json({ message: "Health record created successfully", newRecord });
+    
   } catch (error) {
     console.error("Error creating health record:", error);
-    res.status(500).json({ message: "Internal Server Error", error: error.message });
+    res.status(500).json({ 
+      message: "Server error", 
+      error: error.message 
+    });
   }
 };
 

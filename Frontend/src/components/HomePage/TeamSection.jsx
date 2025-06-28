@@ -3,27 +3,27 @@ import React from "react";
 const teamMembers = [
   {
     name: "Kanishka Pandey",
-    role: "UI/UX Designer",
-    experience: "Winner at Hackverse 5.0 NIT Surathkal | Third Winner in Quasar 2.0| Code Rush Finalist 2023{IIT Gwalior} |",
+    role: "UI/UX Designer/Frontend lead",
+    experience: "AI Enthusiast , Hackathon finalist ",
     image: "/./src/assets/Screenshot 2025-03-11 205754.png"
   },
   {
-    name: "Siya Pari",
-    role: "Backend Lead",
-    experience: "GNDU CSE'28 🎓 || Contributor @ GSSOC-Ext'24 || Tech enthusiast 👩‍💻",
-    image: "./src/assets/WhatsApp Image 2025-04-03 at 18.05.04_2535e614.jpg"
+    name: "Saksham Garg ",
+    role: "Backend Lead/Blockchain Lead",
+    experience: "Backend Expert , Blockchain Enthusiast | International Conference SCI 25 Best Paper",
+    image: "./src/assets/Saksham.jpg"
   },
   {
-    name: "Mufaddal Ratlamwala",
-    role: "Backend Lead",
-    experience: "Hackverse 5.0 NITK 🏆| Back-End Development | Full-Stack MERN Development | DSA | Contributor @GSSoC'24 | Core Team @GDSC",
-    image: "./src/assets/Screenshot 2025-03-11 205909.png"
+    name: "Tannisa  Sinha",
+    role: "AI lead/Backend Developer",
+    experience: "Winner @IIT Indore HCMS Hackathon | Winner @Hacknovate6.0 | CSE'26 @ KIIT",
+    image: "./src/assets/tanissa.jpg"
   },
   {
-    name: "Athrav Shrotiya",
-    role: "AI lead ",
-    experience: "Electronics and Tech. Enthusiat || DSA || Python || Data Science || Machine Learning || Content Writer|| 4⭐⭐⭐⭐ Python HackerRank",
-    image: "./src/assets/image.png"
+    name: "Swanand Sinnarkar  ",
+    role: "Backend Developer ",
+    experience: "Pre-Final Year Student @ IETDAVV | MERN Enthusiast",
+    image: "./src/assets/Swanand.jpg"
   },
 
 ];

@@ -11,7 +11,6 @@ import PatientForm from "./Pages/PatientForm";
 import Aibot from "./Pages/Aibot";
 import Booking from "./Pages/Booking";
 import Contact from "./Pages/Contact";
-import Telemedicine from "./Pages/telemedicine";
 import VideoCall from "./Pages/VideoCall";
 import DoctorsDashboard from "./Pages/DoctorsDashboard";
 import Dashboard from "./components/StudentDashboard/Dashboard";
@@ -82,7 +81,6 @@ const App = () => {
         <Route path="/signup" element={<SignUp />} />
         <Route path="/login" element={<Login />} />
         <Route path="/patient" element={<PatientForm />} />
-        <Route path="/telemedicine" element={<Telemedicine />} />
         {/* <Route path="/video-call" element={<VideoCall />} /> */}
         <Route path="/doctor" element={<DocDash />} />
         <Route path="/leave" element={<MedicalLeave />} />

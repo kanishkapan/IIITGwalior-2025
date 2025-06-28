@@ -11,7 +11,7 @@ export const getMedicalLeaveApplications = async (req, res) => {
       .populate("studentId", "name gender email phone dateOfBirth")
       .populate("healthRecordId", "diagnosis treatment prescription date doctorId isManualUpload externalDoctorName externalHospitalName attachments")
       .populate("approvedBy", "name email");
-
+      
     const formattedLeaves = leaves.map((leave) => {
       // Handle cases where associated data might be missing
       const studentName = leave.studentId ? leave.studentId.name : "Unknown";
@@ -35,8 +35,8 @@ export const getMedicalLeaveApplications = async (req, res) => {
         status: leave.status,
       };
     });
-
-    res.status(500).json(formattedLeaves);
+    
+    res.status(200).json(formattedLeaves);
   } catch (error) {
     console.error("Error in getMedicalLeaveApplications:", error);
     res.status(500).json({ message: error.message });
