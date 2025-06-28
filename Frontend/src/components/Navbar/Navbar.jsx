@@ -1,9 +1,9 @@
 import React, { useContext } from "react";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { FiMenu, FiX } from "react-icons/fi";
 import { UserContext } from "../../context/UserContext";
-import { useNavigate } from "react-router-dom";
+import { api } from "../../axios.config.js"; // Import Axios instance
 
 const Navbar = React.memo(() => {
   const { isLoggedIn, user, logout } = useContext(UserContext);
@@ -12,6 +12,16 @@ const Navbar = React.memo(() => {
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await api.post("user/logout"); // Call logout endpoint
+      logout(); // Update local state
+      navigate("/"); // Navigate to home after logout
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
   };
 
   return (
@@ -26,7 +36,7 @@ const Navbar = React.memo(() => {
         <li><Link to="/ai-bot" className="hover:text-green-500">AI Bot</Link></li>
         <li><Link to="/telemedicine" className="hover:text-green-500">Telemedicine</Link></li>
         <li><Link to="/contact" className="hover:text-green-500">Contact</Link></li>
-        <li><Link to="/profile" className="hover:text-green-500">Profile</Link></li>
+        
         <li><Link to="/appointment" className="hover:text-green-500">Appointment</Link></li>
         <li><Link to="/video-call" className="hover:text-green-500">Video Call</Link></li>
       </ul>
@@ -39,10 +49,7 @@ const Navbar = React.memo(() => {
                 {user && user.name ? user.name.charAt(0).toUpperCase() : "U"}
               </div>
             </Link>
-            <button onClick={() => {
-              logout();
-              navigate("/"); // Navigate to home after logout
-            }} className="bg-green-300 text-green-900 px-4 py-2 rounded-lg font-bold hover:bg-green-400">Logout</button>
+            <button onClick={handleLogout} className="bg-green-300 text-green-900 px-4 py-2 rounded-lg font-bold hover:bg-green-400">Logout</button>
           </div>
         ) : (
           <>
@@ -83,10 +90,7 @@ const Navbar = React.memo(() => {
             navigate("/contact");
             toggleMenu();
           }} className="text-lg hover:text-green-500 cursor-pointer">Contact</div>
-          <div onClick={() => {
-            navigate("/profile");
-            toggleMenu();
-          }} className="text-lg hover:text-green-500 cursor-pointer">Profile</div>
+        
           <div onClick={() => {
             navigate("/appointment");
             toggleMenu();
@@ -102,11 +106,7 @@ const Navbar = React.memo(() => {
                 navigate("/profile");
                 toggleMenu();
               }} className="text-lg hover:text-green-500 cursor-pointer">Profile</div>
-              <button onClick={() => {
-                logout();
-                navigate("/"); // Navigate to home after logout
-                toggleMenu();
-              }} className="bg-green-300 text-green-900 px-4 py-2 rounded-lg font-bold hover:bg-green-400 text-center">Logout</button>
+              <button onClick={handleLogout} className="bg-green-300 text-green-900 px-4 py-2 rounded-lg font-bold hover:bg-green-400 text-center">Logout</button>
             </div>
           ) : (
             <>

@@ -23,7 +23,7 @@ const Header = () => {
         {/* Image Placeholder */}
         <div className="lg:w-1/2 flex justify-center mt-10 lg:mt-0">
           <img
-            src="./src/assets/image 35.png"
+            src="./src/assets/patientform.png"
             alt="Healthcare Illustration"
             className="w-full max-w-lg"
           />

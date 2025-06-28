@@ -72,14 +72,44 @@ const AppointmentForm = () => {
     setSuccess("");
     
     try {
-      // Find the selected slot's full dateTime
+      // Find the selected slot's full information
       const selectedSlot = availableSlots.find(slot => slot.id === formData.slotId);
+      
+      // Debug logging to see what's in the selected slot
+      console.log("Selected slot:", selectedSlot);
+      
+      // Check if selectedSlot exists
+      if (!selectedSlot) {
+        throw new Error("Selected time slot not found. Please try again.");
+      }
+      
+      // Create a proper datetime string that MongoDB can parse
+      // Combine the date with the time from the selected slot
+      const dateStr = formData.date; // "YYYY-MM-DD"
+      const timeStr = selectedSlot.time; // Assuming format like "9:00 AM"
+      
+      // Parse time to 24-hour format
+      let time24h = timeStr;
+      if (timeStr.includes('AM') || timeStr.includes('PM')) {
+        const [hourMin, period] = timeStr.split(' ');
+        let [hours, minutes] = hourMin.split(':').map(Number);
+        
+        if (period === 'PM' && hours < 12) hours += 12;
+        if (period === 'AM' && hours === 12) hours = 0;
+        
+        time24h = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+      }
+      
+      // Combine date and time into an ISO string
+      const slotDateTime = new Date(`${dateStr}T${time24h}:00`);
       
       // Prepare the data for submission
       const appointmentData = {
         doctorId: formData.doctorId,
-        slotDateTime: selectedSlot.dateTime // Using the full dateTime from the slot
+        slotDateTime: slotDateTime.toISOString() // Send as ISO string
       };
+      
+      console.log("Sending data to server:", appointmentData);
       
       const response = await api.post("/appointment", appointmentData);
       setSuccess("Appointment booked successfully!");
@@ -93,7 +123,7 @@ const AppointmentForm = () => {
       });
       setAvailableSlots([]);
     } catch (error) {
-      setError(error.response?.data?.message || "Failed to book appointment. Please try again.");
+      setError(error.response?.data?.message || error.message || "Failed to book appointment. Please try again.");
       console.error("Error submitting form:", error.response?.data || error.message);
     } finally {
       setLoading(false);

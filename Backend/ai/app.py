@@ -15,6 +15,8 @@ client = MongoClient(MONGO_URI)
 db = client["arogya-vault"]
 collection = db["healthrecords"]
 collection2=db["medicalleaves"]
+users_collection = db["users"]
+appointments_collection = db["appointments"]
 
 # Load API Key from .env
 from dotenv import load_dotenv
@@ -140,8 +142,80 @@ def leave_related_question():  # ✅ Unique function name
 
     except Exception as e:
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+    
+    
 
+@app.route("/doctor_insights", methods=["POST"])
+def doctor_insights():
+    try:
+        data = request.json
+        doctor_id = data.get("doctorId")
+        user_question = data.get("question")
+
+        if not doctor_id or not user_question:
+            return jsonify({"error": "Doctor ID and question are required"}), 400
+
+        # Fetch doctor details
+        doctor = users_collection.find_one({"_id": ObjectId(doctor_id)})
+        if not doctor:
+            return jsonify({"error": "Doctor not found"}), 404
+
+        # Fetch doctor's upcoming appointments
+        appointments = list(appointments_collection.find({"doctorId": ObjectId(doctor_id)}))
+
+        # Fetch student names for each appointment
+        enriched_appointments = []
+        for appointment in appointments:
+            student = users_collection.find_one({"_id": ObjectId(appointment["studentId"])}, {"name": 1})
+            student_name = student["name"] if student else "Unknown Student"
+            appointment["studentName"] = student_name
+            enriched_appointments.append(appointment)
+
+        # Fetch all health records of patients treated by the doctor
+        health_records = list(db["healthrecords"].find({"doctorId": ObjectId(doctor_id)}))
+
+        # Fetch student names for each health record
+        enriched_health_records = []
+        for record in health_records:
+            student = users_collection.find_one({"_id": ObjectId(record["studentId"])}, {"name": 1})
+            student_name = student["name"] if student else "Unknown Patient"
+            record["patientName"] = student_name
+            enriched_health_records.append(record)
+
+        # Convert MongoDB documents to JSON serializable format
+        formatted_appointments = convert_objectid(enriched_appointments)
+        formatted_health_records = convert_objectid(enriched_health_records)
+
+        # Prepare prompt for Gemini AI (Address the doctor as "You")
+        gemini_prompt = f"""
+        You are a doctor. Here is your information:
+
+        Your Specialization: {doctor.get("specialization", "N/A")}
+        Your Contact: {doctor.get("email")}, {doctor.get("phone")}
+
+        Your Upcoming Appointments:
+        {formatted_appointments}
+
+        Your Past Treatments (Health Records):
+        {formatted_health_records}
+
+        Based on this data, answer the following question:
+        "{user_question}"
+
+        Always address the person asking as "You" instead of their name.
+        """
+
+        # Generate response using Gemini AI
+        response = model.generate_content(gemini_prompt)
+        final_answer = response.text if response and response.text else "Gemini AI could not generate an answer."
+
+        return jsonify({"status": "success", "answer": final_answer})
+
+    except Exception as e:
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+  
 
 # Run Flask app
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="127.0.0.1", port=3053, debug=True)
