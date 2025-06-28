@@ -2,7 +2,7 @@ import React from 'react';
 
 const VideoCallCard = ({ doctorImage, decorationImage }) => {
   const handleScheduleSession = () => {
-    window.location.href = "https://kani21.daily.co/TzK7Hs9DL3CdAS80lgq3"; // Replace with your actual Daily.co room link
+    window.location.href = "https://meet.jit.si/KalSmithMathMentorRoom2025"; // Replace with your actual Daily.co room link
   };
   return (
     <div className="container mx-auto p-6 max-w-5xl bg-gray-100 min-h-screen flex items-center justify-center">

@@ -18,13 +18,16 @@ export default function Login() {
         { email, password },
         { withCredentials: true } // Important for cookies to be stored
       );
-
+      console.log(response);
       if (response.status === 200) {
         const { role, userData,token } = response.data;
         login(userData); // Update user context
+        
         if (token) {
           localStorage.setItem("token", token);  // ✅ Store token manually
         }
+        localStorage.setItem("userId", userData.id);
+        console.log("User ID from localStorage:", localStorage.getItem("userId"));
 
         
         if (role === "doctor") {

@@ -49,8 +49,9 @@ const App = () => {
 
     socket.on("newAppointment", (data) => {
       console.log(" New Appointment Notification:", data);
-      showAlert( `Patient ${data.appointment.patientName} has requested an appointment!`,
+      showAlert( `Patient ${data.appointment.studentId.name} has requested an appointment!`,
          "custom", 5000);
+         
     });
 
     socket.on("appointmentUpdate", (data) => {

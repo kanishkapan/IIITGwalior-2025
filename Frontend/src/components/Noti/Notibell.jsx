@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell } from 'lucide-react';
 import { api } from './../../axios.config.js';
+import socket  from "../../socket.js";
+
 
 const Notibell = () => {
   const [notifications, setNotifications] = useState([]);
@@ -29,15 +31,19 @@ const Notibell = () => {
     }
   };
 
-  // Mark notification as read locally (since we don't have the PATCH endpoint)
-  const markAsRead = (id) => {
-    // Only update the UI state without making API call
-    setNotifications(notifications.map(notif => 
-      notif._id === id ? { ...notif, isRead: true } : notif
-    ));
-    
-    // Update unread count
-    setUnreadCount(prev => Math.max(0, prev - 1));
+  
+  const markAsRead = async(id) => {
+    try {
+      await api.patch(`/notifications/mark-single-read/${id}`);
+  
+      setNotifications(notifications.map(notif => 
+        notif._id === id ? { ...notif, isRead: true } : notif
+      ));
+  
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (err) {
+      console.error("Failed to mark notification as read:", err);
+    }
   };
 
   // Toggle dropdown
@@ -49,6 +55,35 @@ const Notibell = () => {
       fetchNotifications();
     }
   };
+  useEffect(() => {
+    const handleNewNotification = (data) => {
+      console.log("🔔 New real-time notification received in Notibell:", data);
+      setUnreadCount((prev) => prev + 1); // increment count
+      setNotifications((prev) => [data.notification, ...prev]); // optional: show new notif
+    };
+  
+    socket.on("newNotification", handleNewNotification);
+  
+    return () => {
+      socket.off("newNotification", handleNewNotification);
+    };
+  }, []);
+  
+  //for leave notifications
+  useEffect(() => {
+    const handleNewLeaveNotification = (data) => {
+      console.log("📬 New leave notification:", data);
+      setUnreadCount((prev) => prev + 1);
+      setNotifications((prev) => [data.notification, ...prev]);
+    };
+  
+    socket.on("newLeaveNotification", handleNewLeaveNotification);
+  
+    return () => {
+      socket.off("newLeaveNotification", handleNewLeaveNotification);
+    };
+  }, []);
+  
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -69,9 +104,9 @@ const Notibell = () => {
     fetchNotifications();
     
     // Set up polling every minute
-    const interval = setInterval(fetchNotifications, 60000);
+    // const interval = setInterval(fetchNotifications, 60000);
     
-    return () => clearInterval(interval);
+    // return () => clearInterval(interval);
   }, []);
 
   // Format notification timestamp
@@ -117,10 +152,18 @@ const Notibell = () => {
               {unreadCount > 0 && (
                 <button 
                   className="text-sm text-blue-500 hover:text-blue-700"
-                  onClick={() => {
-                    // Mark all as read locally since we don't have the API endpoint
-                    setNotifications(notifications.map(notif => ({ ...notif, isRead: true })));
-                    setUnreadCount(0);
+                  onClick={async () => {
+                    try {
+                      const userId = localStorage.getItem("userId"); 
+                      console.log(userId);
+                      await api.patch(`notifications/mark-all-read/${userId}`);
+              
+                      // Update UI after success
+                      setNotifications(notifications.map(notif => ({ ...notif, isRead: true })));
+                      setUnreadCount(0);
+                    } catch (err) {
+                      console.error("Failed to mark all notifications as read:", err);
+                    }
                   }}
                 >
                   Mark all as read

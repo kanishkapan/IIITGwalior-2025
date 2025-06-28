@@ -69,12 +69,23 @@ export const bookAppointment = async (req, res) => {
       console.log(`Sending notification to doctor ${doctorId}`);
       doctorSocket.emit("newAppointment", {
         message:  `📅 ${studentDetails.name} has requested an appointment!`,
-        appointment:{
+        appointment: {
           ...appointment.toObject(),
-          doctorName: doctorDetails.name,
-          patientName: studentDetails.name
+          doctorId: {
+            _id: doctorDetails._id,
+            name: doctorDetails.name,
+          },
+          studentId: {
+            _id: studentDetails._id,
+            name: studentDetails.name,
+          },
         },
+        
       });
+      doctorSocket.emit("newNotification", {
+        notification,
+      });
+      
     }
 
     res.status(201).json({ message: "Appointment booked successfully.", appointment });

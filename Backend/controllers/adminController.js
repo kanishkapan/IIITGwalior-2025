@@ -65,7 +65,12 @@ export const updateLeaveStatus = async (req, res) => {
 
       if (studentSocket) {
         console.log("informing patient about the leave application status");
-        studentSocket.emit("leaveStatusUpdate", { message:notification.message,leave });
+        // studentSocket.emit("leaveStatusUpdate", { message:notification.message,leave });
+        studentSocket.emit("newNotification", {
+          notification, leave,
+        });
+  
+
       }
       else {
         console.log(`Student ${leave.studentId} is offline.`);

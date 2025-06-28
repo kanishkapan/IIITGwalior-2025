@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import socket from "../../socket.js";
 import {
   BarChart,
   Bar,
@@ -89,6 +90,40 @@ const DocDash = () => {
   const [statusFilter, setStatusFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
 
+  useEffect(() => {
+    const handleNewAppointment = (data) => {
+      
+      const app = data.appointment;
+  
+      const newApp = {
+          id: app._id,
+          patientName: app.studentId?.name || "Unknown",
+          studentId: app.studentId?._id || "N/A",
+          studentEmail: app.studentId?.email || "N/A",
+          appointmentDate: new Date(app.slotDateTime).toLocaleDateString(),
+          timeFrom: new Date(app.slotDateTime).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          timeTo: calculateEndTime(app.slotDateTime, app.duration || 30),
+          reason: app.reason || "General Checkup",
+          status: app.status.charAt(0).toUpperCase() + app.status.slice(1),
+          rawData: app,
+        
+      };
+  
+      // Prepend the new appointment to the current list
+      setAppointments((prevAppointments) => [newApp, ...prevAppointments]);
+    };
+  
+    socket.on("newAppointment", handleNewAppointment);
+  
+    // Cleanup on unmount
+    return () => {
+      socket.off("newAppointment", handleNewAppointment);
+    };
+  }, []);
+  
   // Sample data for prescriptions
   const [prescriptions] = useState([
     {

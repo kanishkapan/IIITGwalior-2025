@@ -11,7 +11,6 @@ const socket = io("http://localhost:3053", {  // Change URL if needed
   auth:{ token: getToken() },
 });
 
-// const token = localStorage.getItem("token");
 socket.on("connect", () => {
   console.log("Connected to Socket.io server with ID:", socket.id);
   
@@ -26,10 +25,10 @@ socket.on("connect", () => {
 
 });
 
-socket.on("appointmentUpdate", (data) => {
-  console.log("Appointment Update Notification:", data);
-  showAlert(data.message, 'custom', 10000);
-});
+// socket.on("appointmentUpdate", (data) => {
+//   console.log("Appointment Update Notification:", data);
+//   showAlert(data.message, 'custom', 10000);
+// });
 socket.on("newLeaveRequest", (data) => {
   console.log("newLeave Request:",data);
   showAlert(data.message, 'custom', 10000);

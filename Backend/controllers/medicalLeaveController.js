@@ -64,20 +64,18 @@ export const applyMedicalLeave = async (req, res) => {
       if (user && user.role =="admin") {
         console.log("Informing admin about the leave application");
 
-        //storing in mongo db 
-        await Notification.create({
-          recipientId: user._id,  // Store admin ID
+      
+        const savedNotification = await Notification.create({
+          recipientId: user._id,
           type: "leave",
-          message:`Student ${student.name} has applied for medical leave!` ,
+          message: `Student ${student.name} has applied for medical leave!`,
+        });
+        
+        socket.emit("newLeaveNotification", {
+          notification: savedNotification,
+          
         });
 
-        socket.emit("newLeaveRequest", {
-          message:  `Student ${student.name} has applied for medical leave!`,
-          leaveRequest: {
-            ...leaveRequest.toObject(), 
-            studentName: student.name, // Include student’s name
-          },
-        });
       }
     });
 

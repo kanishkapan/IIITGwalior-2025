@@ -4,6 +4,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie } fr
 import { Bell, Settings, Search, Eye, Calendar, FileText, User, UserPlus, Users, Activity, AlertCircle } from 'lucide-react';
 import {api} from '../../axios.config';
 import Notibell from '../Noti/Notibell';
+import socket from "../../socket"; // Make sure it's the same shared socket instance
+
 const AdminDashboard = () => {
   // Sample data for student leave applications
   const [leaveApplications, setLeaveApplications] = useState([]);
@@ -77,6 +79,25 @@ const AdminDashboard = () => {
       }
     };
     fetchLeaveApplications();
+     socket.on("newLeaveNotification", (data) => {
+          console.log("📬 Leave notification received in dashboard:", data);
+      
+          if (data.leave) {
+            setLeaveApplications((prev) => {
+              const exists = prev.some((item) => item._id === data.leave._id);
+              if (exists) {
+                return prev.map((item) =>
+                  item._id === data.leave._id ? { ...item, ...data.leave } : item
+                );
+              } else {
+                return [data.leave, ...prev];
+              }
+            });
+          }
+        });
+        return () => {
+          socket.off("newLeaveNotification");
+        };
   }, []);
 
   const updateLeaveStatus = async (id, status) => {
@@ -242,7 +263,7 @@ const AdminDashboard = () => {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
-                  </thead>
+                  </thead> 
                   <tbody className="bg-white divide-y divide-gray-200">
   {leaveApplications.map((app,index) => (
     <tr key={app.id} className="hover:bg-gray-50">

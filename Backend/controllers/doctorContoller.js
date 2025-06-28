@@ -121,6 +121,9 @@ export const updateAppointmentStatus = async (req, res) => {
           doctorName: appointment.doctorId.name, // Extract doctor’s name
         },
       });
+      patientSocket.emit("newNotification", {
+        notification,
+      });
     } else {
       console.log(`Patient ${studentId} is offline. Cannot send update.`);
     }
