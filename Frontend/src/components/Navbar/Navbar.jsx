@@ -64,7 +64,7 @@ const Navbar = React.memo(() => {
       <ul className="hidden md:flex space-x-6 text-lg text-gray-700">
         <li><Link to="/" className="hover:text-green-500">Home</Link></li>
         <li><Link to="/ai-bot" className="hover:text-green-500">AI Bot</Link></li>
-        <li><Link to="/telemedicine" className="hover:text-green-500">Telemedicine</Link></li>
+        {/* <li><Link to="/telemedicine" className="hover:text-green-500">Telemedicine</Link></li> */}
         <li><Link to="/contact" className="hover:text-green-500">Contact</Link></li>
         
         <li><Link to="/appointment" className="hover:text-green-500">Appointment</Link></li>

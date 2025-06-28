@@ -18,6 +18,9 @@ const AppointmentSchema = new mongoose.Schema(
       enum: ["pending", "confirmed", "cancelled"],
       default: "pending",
     },
+    prescription :{
+      type: String
+    }
   },
   { timestamps: true }
 );

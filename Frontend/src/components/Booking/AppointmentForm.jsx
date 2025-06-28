@@ -130,8 +130,8 @@ const AppointmentForm = () => {
           <button type="submit" className="w-full bg-green-600 text-white py-2 rounded-md font-semibold hover:bg-green-700 disabled:bg-gray-400" disabled={!formData.slotId}>{loading ? "Processing..." : "Book Appointment"}</button>
         </form>
       </div>
-      <div className="hidden lg:flex w-1/2 justify-center items-center p-4">
-        <img src="./src/assets/form-design-flip.png" alt="Doctor Consultation" className="w-full max-w-md rounded-lg" />
+      <div className="hidden lg:flex w-1/2 justify-center items-center">
+        <img src="../src/assets/patientform.png" alt="Doctor Consultation" className="w-full max-w-md rounded-lg" />
       </div>
     </div>
   );

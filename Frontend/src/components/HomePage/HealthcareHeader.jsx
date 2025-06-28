@@ -5,7 +5,7 @@ const HealthcareHeader = () => {
     <div className="w-full bg-white py-16 ">
       <div className="max-w-4xl mx-auto text-center space-y-8">
         <h1 className="text-2xl md:text-4xl lg:text-5xl text-green-500 font-light leading-relaxed tracking-wide">
-          "WHERE COMPASSION MEETS INNOVATION IN HEALTHCARE."
+        Effortless Student Healthcare Management – Securely Store, Access & Manage Medical Records with Arogya Vault.
         </h1>
         
         <p className="text-sm md:text-base lg:text-lg text-gray-800 font-medium leading-relaxed tracking-wide max-w-3xl mx-auto px-4">

@@ -4,6 +4,8 @@ import {
   MedicalLeave,
   User,
 } from "../models/index.js";
+import { uploadDocument } from "../utils/cloudinary.js";
+import fs from "fs";
 
 export const updateTimeSlots = async (req, res) => {
   const doctorId = req.user.id;
@@ -99,12 +101,60 @@ export const getDoctorAppointments = async (req, res) => {
       filter.status = status;
     }
 
+    // First, fetch the doctor information to get their name
+    const doctor = await User.findById(doctorId, "name");
+    
+    // Then fetch appointments and populate student info
     const appointments = await Appointment.find(filter).populate(
       "studentId",
       "name email"
     );
 
-    res.status(200).json(appointments);
+    // Add the doctor name to the response
+    const appointmentsWithDoctorInfo = appointments.map(appointment => {
+      const appointmentObj = appointment.toObject();
+      appointmentObj.doctorName = doctor.name;
+      return appointmentObj;
+    });
+
+    res.status(200).json(appointmentsWithDoctorInfo);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+export const updatePrescription = async (req, res) => {
+  try {
+    const { appointmentId } = req.body;
+    if (!appointmentId) {
+      return res.status(400).json({ message: "Appointment ID is required." });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded." });
+    }
+
+    // Upload file to Cloudinary
+    const uploadResult = await uploadDocument(req.file.path);
+
+    // Update the appointment with the prescription URL
+    const updatedAppointment = await Appointment.findByIdAndUpdate(
+      appointmentId,
+      { prescription: uploadResult.secure_url },
+      { new: true }
+    );
+
+    if (!updatedAppointment) {
+      return res.status(404).json({ message: "Appointment not found." });
+    }
+
+    // Remove file from local storage after upload
+    fs.unlinkSync(req.file.path);
+
+    res.status(200).json({
+      message: "Prescription uploaded successfully.",
+      appointment: updatedAppointment,
+    });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }

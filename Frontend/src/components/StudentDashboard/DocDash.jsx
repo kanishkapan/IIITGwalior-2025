@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie } from 'recharts';
 import { Bell, Settings, Search, Eye, Calendar, FileText, User, Check, X, Video, Clock, Bot, MessageSquare, Activity, AlertCircle, FileCheck } from 'lucide-react';
 import { api } from '../../axios.config.js';
+import { useNavigate } from "react-router-dom";
 
 const DocDash = () => {
   // Sample data for student certificates
@@ -12,6 +13,7 @@ const DocDash = () => {
     { id: 'CERT003', studentName: 'Michael Wang', studentId: 'STU10023', gender: 'Male', certificateType: 'Mental Health Clearance', issueDate: '2025-03-05', expiryDate: '2025-09-05', documentLink: 'mh_clearance.pdf', status: 'Pending' },
     { id: 'CERT004', studentName: 'Sarah Miller', studentId: 'STU10091', gender: 'Female', certificateType: 'Physical Examination', issueDate: '2025-02-28', expiryDate: '2026-02-28', documentLink: 'physical_exam.pdf', status: 'Rejected' }
   ]);
+  const navigate = useNavigate();
 
   // Replace static appointment sample data with dynamic state
   const [appointments, setAppointments] = useState([]);
@@ -180,32 +182,21 @@ const DocDash = () => {
               <span className="text-lg font-medium">{item.name}</span>
             </Link>
           ))}
+            <div className="flex items-center justify-center p-6 bg-white rounded-2xl shadow-md border border-green-500">
+      <button
+        onClick={() => navigate("/slots")}
+        className="px-6 py-3 text-lg font-semibold text-white bg-green-500 rounded-lg transition-all duration-300 ease-in-out hover:bg-green-600 hover:shadow-lg"
+      >
+        Select Time Slot
+      </button>
+    </div>
         </nav>
 
         {/* AI Bot Section */}
-        <div className="mt-8 p-4 bg-blue-50 rounded-lg">
-          <h3 className="font-semibold text-blue-700 flex items-center">
-            <Bot className="w-5 h-5 mr-2" /> AI Assistant
-          </h3>
-          <p className="text-sm text-gray-600 mt-2">Get quick assistance with diagnoses, medical references, and patient recommendations.</p>
-          <button className="mt-3 w-full bg-blue-600 text-white px-4 py-2 rounded-lg text-sm flex items-center justify-center">
-            <MessageSquare className="w-4 h-4 mr-2" /> Start Conversation
-          </button>
-        </div>
+      
 
         {/* Video Call Section */}
-        <div className="mt-4 p-4 bg-green-50 rounded-lg">
-          <h3 className="font-semibold text-green-700 flex items-center">
-            <Video className="w-5 h-5 mr-2" /> Upcoming Video Call
-          </h3>
-          <div className="mt-2 text-sm">
-            <p className="font-medium">Emma Johnson</p>
-            <p className="text-gray-600">Today, 4:00 PM - 4:30 PM</p>
-            <button className="mt-2 w-full bg-green-600 text-white px-4 py-2 rounded-lg text-sm">
-              Join Call
-            </button>
-          </div>
-        </div>
+     
       </div>
 
       {/* Main Content */}
@@ -281,80 +272,8 @@ const DocDash = () => {
         {/* Tab Content */}
         <div className="bg-white rounded-xl border p-6">
           {/* Certificate Verification Tab */}
-          {activeTab === 'certificate' && (
-            <div>
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold">Student Certificate Verification</h2>
-                <div className="flex space-x-2">
-                  <select className="border rounded-lg px-3 py-2">
-                    <option>All Status</option>
-                    <option>Pending</option>
-                    <option>Approved</option>
-                    <option>Rejected</option>
-                  </select>
-                  <input type="text" placeholder="Search by ID" className="border rounded-lg px-3 py-2" />
-                </div>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Name</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student ID</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Certificate Type</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Issue Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expiry Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Document</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {certificates.map((cert) => (
-                      <tr key={cert.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{cert.id}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{cert.studentName}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{cert.studentId}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{cert.certificateType}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{cert.issueDate}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{cert.expiryDate}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 underline cursor-pointer">{cert.documentLink}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            cert.status === 'Approved' ? 'bg-green-100 text-green-800' : 
-                            cert.status === 'Rejected' ? 'bg-red-100 text-red-800' : 
-                            'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {cert.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <div className="flex space-x-2">
-                            <button className="flex items-center text-blue-600 hover:text-blue-900">
-                              <Eye className="w-4 h-4 mr-1" /> View
-                            </button>
-                            {cert.status === 'Pending' && (
-                              <>
-                                <button className="flex items-center text-green-600 hover:text-green-900">
-                                  <Check className="w-4 h-4 mr-1" /> Approve
-                                </button>
-                                <button className="flex items-center text-red-600 hover:text-red-900">
-                                  <X className="w-4 h-4 mr-1" /> Reject
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
 
-          {/* Appointment Approval Tab */}
+
           {activeTab === 'appointment' && (
             <div>
               <div className="flex justify-between items-center mb-6">
@@ -469,10 +388,85 @@ const DocDash = () => {
                     </tbody>
                   </table>
                 </div>
-              )}
+              )}  
             </div>
           )}
 
+          {activeTab === 'certificate' && (
+            <div>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold">Student Certificate Verification</h2>
+                <div className="flex space-x-2">
+                  <select className="border rounded-lg px-3 py-2">
+                    <option>All Status</option>
+                    <option>Pending</option>
+                    <option>Approved</option>
+                    <option>Rejected</option>
+                  </select>
+                  <input type="text" placeholder="Search by ID" className="border rounded-lg px-3 py-2" />
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Name</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student ID</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Certificate Type</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Issue Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expiry Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Document</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {certificates.map((cert) => (
+                      <tr key={cert.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{cert.id}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{cert.studentName}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{cert.studentId}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{cert.certificateType}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{cert.issueDate}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{cert.expiryDate}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 underline cursor-pointer">{cert.documentLink}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            cert.status === 'Approved' ? 'bg-green-100 text-green-800' : 
+                            cert.status === 'Rejected' ? 'bg-red-100 text-red-800' : 
+                            'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {cert.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <div className="flex space-x-2">
+                            <button className="flex items-center text-blue-600 hover:text-blue-900">
+                              <Eye className="w-4 h-4 mr-1" /> View
+                            </button>
+                            {cert.status === 'Pending' && (
+                              <>
+                                <button className="flex items-center text-green-600 hover:text-green-900">
+                                  <Check className="w-4 h-4 mr-1" /> Approve
+                                </button>
+                                <button className="flex items-center text-red-600 hover:text-red-900">
+                                  <X className="w-4 h-4 mr-1" /> Reject
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Appointment Approval Tab */}
+         
           {/* Prescription Verification Tab */}
           {activeTab === 'prescription' && (
             <div>

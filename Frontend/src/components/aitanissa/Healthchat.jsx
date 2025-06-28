@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
+import { api } from "../../axios.config.js";
 
 const Healthchat = () => {
-  const [studentId, setStudentId] = useState('');
   const [question, setQuestion] = useState('');
   const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -12,36 +12,29 @@ const Healthchat = () => {
     setLoading(true);
 
     try {
-      const payload = {
-        studentId,
-        question
-      };
-
-      const response = await fetch('http://localhost:5000/ask_question', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await response.json();
+      const payload = { question };
+      const res = await api.post('http://localhost:5000/ask_question', payload);
+      const data = res.data;
       
       setResponse(data);
       
-      // Add to chat history
-      setChatHistory(prev => [...prev, {
-        type: 'question',
-        content: question,
-        timestamp: new Date().toLocaleTimeString()
-      }, {
-        type: 'answer',
-        content: data.answer,
-        status: data.status,
-        timestamp: new Date().toLocaleTimeString()
-      }]);
+      // Update chat history
+      setChatHistory(prev => [
+        ...prev,
+        {
+          type: 'question',
+          content: question,
+          timestamp: new Date().toLocaleTimeString()
+        },
+        {
+          type: 'answer',
+          content: data.answer,
+          status: data.status,
+          timestamp: new Date().toLocaleTimeString()
+        }
+      ]);
       
-      // Clear question input after sending
+      // Clear question input
       setQuestion('');
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -55,10 +48,7 @@ const Healthchat = () => {
   const renderText = (text) => {
     if (!text) return null;
     
-    // This regex looks for URLs in parentheses
     const linkRegex = /\(https:\/\/[^)]+\)/g;
-    
-    // Split the text by links
     const parts = text.split(linkRegex);
     const matches = text.match(linkRegex) || [];
     
@@ -100,21 +90,6 @@ const Healthchat = () => {
       <div className="flex flex-1 overflow-hidden max-w-7xl mx-auto w-full">
         {/* Chat container */}
         <div className="flex flex-col flex-1 p-4">
-          {/* Student ID input */}
-          <div className="mb-6 bg-white p-6 rounded-lg shadow-md border-l-4 border-emerald-500">
-            <label htmlFor="studentId" className="block text-sm font-medium text-gray-700 mb-2">
-              Student ID
-            </label>
-            <input
-              type="text"
-              id="studentId"
-              value={studentId}
-              onChange={(e) => setStudentId(e.target.value)}
-              placeholder="Enter your student ID"
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
-            />
-          </div>
-          
           {/* Chat history */}
           <div className="flex-1 overflow-y-auto mb-6 bg-white rounded-lg shadow-md">
             <div className="p-4 space-y-4">
@@ -130,11 +105,7 @@ const Healthchat = () => {
                 chatHistory.map((item, index) => (
                   <div 
                     key={index} 
-                    className={`${
-                      item.type === 'question' 
-                        ? 'bg-emerald-100 ml-12 border-l-4 border-emerald-500' 
-                        : 'bg-white mr-12 border border-gray-200 shadow-sm'
-                    } p-4 rounded-lg`}
+                    className={`${item.type === 'question' ? 'bg-emerald-100 ml-12 border-l-4 border-emerald-500' : 'bg-white mr-12 border border-gray-200 shadow-sm'} p-4 rounded-lg`}
                   >
                     <div className="flex justify-between items-center mb-2">
                       <span className={`font-medium ${item.type === 'question' ? 'text-emerald-800' : 'text-gray-800'}`}>
@@ -168,12 +139,12 @@ const Healthchat = () => {
               onChange={(e) => setQuestion(e.target.value)}
               placeholder="Ask about your health records..."
               className="flex-1 p-3 border-none focus:outline-none focus:ring-0"
-              disabled={loading || !studentId}
+              disabled={loading}
             />
             <button
               type="submit"
               className="bg-gradient-to-r from-emerald-600 to-green-500 text-white p-3 rounded-lg hover:from-emerald-700 hover:to-green-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all ml-2"
-              disabled={loading || !question || !studentId}
+              disabled={loading || !question}
             >
               {loading ? (
                 <span className="flex items-center">
@@ -205,12 +176,12 @@ const Healthchat = () => {
           </h2>
           <div className="text-sm text-gray-600 space-y-3">
             <p>Use this interface to query your health records securely.</p>
-            <p>Enter your student ID and ask specific questions about your health records.</p>
+            <p>Ask specific questions about your health records.</p>
             
             <div className="bg-emerald-50 p-3 rounded-lg border-l-2 border-emerald-400 mt-4">
               <p className="font-medium text-emerald-800 mb-2">Example questions:</p>
               <ul className="list-disc pl-5 space-y-1 text-gray-700">
-                <li>Give me details about my all health record</li>
+                <li>Give me details about all my health records</li>
                 <li>What was my last diagnosis?</li>
                 <li>Show me my prescriptions</li>
               </ul>

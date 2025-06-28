@@ -7,17 +7,13 @@ const HeroSection = () => {
         {/* Text Content */}
         <div className="lg:w-1/2 text-left">
         <h1 className="text-green-700 text-3xl lg:text-5xl font-thin mb-6 leading-snug lg:leading-tight">
-  MEET JIVIKA: YOUR <br /> 24/7 HEALTH COMPANION
+        Effortless Student Healthcare Management – Securely Store, Access & Manage Medical Records with Arogya Vault.
 </h1>
 
           <p className="text-gray-700 text-lg lg:text-xl mb-8 leading-relaxed lg:leading-loose">
-            EXPERIENCE HEALTHCARE REIMAGINED WITH AI-POWERED SUPPORT. <br />
-            FROM ROUTINE CHECKUPS TO URGENT CARE GUIDANCE, <br />
-            JIVIKA IS ALWAYS HERE FOR YOU.
+          Your Health, Your Vault – Instantly access, manage, and secure student medical records with ease.
           </p>
-          <button className="bg-green-300 text-green-900 px-6 py-3 rounded-lg font-bold hover:bg-green-400 transition duration-300">
-            Start Your Journey
-          </button>
+          
         </div>
 
         {/* Image Placeholder */}

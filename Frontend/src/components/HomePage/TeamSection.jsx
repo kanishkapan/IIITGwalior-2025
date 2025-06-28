@@ -37,8 +37,8 @@ const teamMembers = [
 const TeamSection = () => {
   return (
     <div className="min-h-screen bg-gray-100 py-12 px-6 md:px-12">
-      <h1 className="text-center text-2xl md:text-4xl lg:text-5xl text-green-500 font-light leading-relaxed tracking-wide">PEOPLE BEHIND DR.JIVIKA</h1>
-      <p className="text-center text-gray-700 mb-8">Meet the skilled and experienced team behind our successful digital marketing strategies</p>
+      <h1 className="text-center text-2xl md:text-4xl lg:text-5xl text-green-500 font-light leading-relaxed tracking-wide">PEOPLE BEHIND AROGYA VAULT </h1>
+      <p className="text-center text-gray-700 mb-8">Meet the skilled and experienced team behind our successful medical app</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
         {teamMembers.map((member, index) => (
           <div 
