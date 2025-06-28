@@ -47,6 +47,18 @@ export const applyMedicalLeave = async (req, res) => {
       supportingDocuments,
       status: "pending",
     });
+    const fullLeave = await MedicalLeave.findById(leaveRequest._id)
+  .populate("studentId", "name gender studentId") // Include name, gender, roll number
+  .populate({
+    path: "healthRecordId",
+    select: "diagnosis date doctorId isManualUpload externalDoctorName",
+    populate: {
+      path: "doctorId",
+      select: "name"
+    }
+  });
+    console.log("full leave :",fullLeave);
+
 
     // Emit real-time notification to ALL online admins
     const io = req.app.get("socketio");
@@ -73,7 +85,27 @@ export const applyMedicalLeave = async (req, res) => {
         
         socket.emit("newLeaveNotification", {
           notification: savedNotification,
-          
+          leave: {
+            // ...leaveRequest.toObject(),
+            // studentName: student.name,
+            _id: fullLeave._id,
+            id: fullLeave._id,
+            reason: fullLeave.reason,
+            fromDate: fullLeave.fromDate.toISOString().split("T")[0],
+            toDate: fullLeave.toDate.toISOString().split("T")[0],
+            diagnosis: fullLeave.healthRecordId?.diagnosis || "N/A",
+            date: fullLeave.healthRecordId?.date?.toISOString().split("T")[0] || "N/A",
+            doctorName: fullLeave.healthRecordId?.isManualUpload
+            ? fullLeave.healthRecordId?.externalDoctorName || "N/A"
+            : fullLeave.healthRecordId?.doctorId?.name || "N/A",
+            status: fullLeave.status,
+            studentName: fullLeave.studentId?.name || "N/A",
+            studentId: fullLeave.studentId?._id || "N/A", // Student Roll No
+            gender: fullLeave.studentId?.gender || "N/A",
+            
+            duration: `${fullLeave.fromDate.toISOString().split("T")[0]} to ${fullLeave.toDate.toISOString().split("T")[0]}`
+          },
+        
         });
 
       }

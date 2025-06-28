@@ -6,6 +6,7 @@ import appointmentRouter from "./appointmentRoutes.js";
 import adminRouter from "./adminRoutes.js";
 import doctorRouter from "./doctorRoutes.js";
 import notificationRoutes from "./notififcationRoutes.js";
+import testRoutes from "./testRoutes.js"
 
 const router = express.Router();
 
@@ -24,5 +25,5 @@ router.use("/appointment", appointmentRouter);
 router.use("/medical-leaves", adminRouter);
 router.use("/doctor", doctorRouter);
 router.use("/notifications",notificationRoutes);
-
+router.use("/test-routes",testRoutes);
 export default router;

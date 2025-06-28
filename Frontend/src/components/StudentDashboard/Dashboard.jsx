@@ -12,27 +12,34 @@ import {
 } from "lucide-react";
 import Notibell from "../Noti/Notibell.jsx";
 import socket from "../../socket.js";
+import { showAlert } from "../alert-system.js";
 
 
 const Dashboard = () => {
+  // States for various sections
   const [healthRecords, setHealthRecords] = useState([]);
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [appointmentsLoading, setAppointmentsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [appointmentsError, setAppointmentsError] = useState(null);
-  const [selectedRecord, setSelectedRecord] = useState(null); // State for selected record
+  const [selectedRecord, setSelectedRecord] = useState(null); // For selected health record
   const [leaveApplications, setLeaveApplications] = useState([]);
   const [leaveLoading, setLeaveLoading] = useState(true);
   const [leaveError, setLeaveError] = useState(null);
   const [selectedLeave, setSelectedLeave] = useState(null);
   const [notificationCount, setNotificationCount] = useState(0);
 
-  // New states for search suggestions
+  // States for search suggestions
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
 
+  // ** NEW: Active tab state **
+  // Possible tab values: "leave", "appointments", "healthRecords", "aiDiagnosis"
+  const [activeTab, setActiveTab] = useState("leave");
+
+  // Fetch leave applications
   useEffect(() => {
     const fetchLeaveApplications = async () => {
       try {
@@ -53,6 +60,15 @@ const Dashboard = () => {
 
     fetchLeaveApplications();
     
+    socket.on("newNotification", (data) => {
+      if (data.notification?.type === "leave") {
+        showAlert(data.notification.message);
+      }
+    });
+  
+    return () => {
+      socket.off("newNotification");
+    };
 
   }, []);
 
@@ -78,9 +94,7 @@ const Dashboard = () => {
     fetchHealthRecords();
   }, []);
 
-  
-  
-  // Fetch student appointments
+  // Fetch student appointments and listen to socket events
   useEffect(() => {
     const fetchStudentAppointments = async () => {
       try {
@@ -90,10 +104,7 @@ const Dashboard = () => {
         } else if (response.data && Array.isArray(response.data.appointments)) {
           setAppointments(response.data.appointments);
         } else {
-          console.error(
-            "Unexpected appointment response format:",
-            response.data
-          );
+          console.error("Unexpected appointment response format:", response.data);
           setAppointments([]);
         }
       } catch (err) {
@@ -106,19 +117,17 @@ const Dashboard = () => {
 
     fetchStudentAppointments();
 
-
     socket.on("appointmentUpdate", (data) => {
       console.log("🔔 Real-time appointment update received:", data);
-      showAlert(data.message, 'custom', 10000);
+      // showAlert is assumed defined elsewhere (or you can replace with your notification logic)
+      // showAlert(data.message, 'custom', 10000);
       fetchStudentAppointments();
-      
     });
-    
+
     socket.on("newAppointment", (data) => {
-      console.log(" 📥New appointment received:", data);
-      console.log('recieved at',new Date().toLocaleTimeString());
-      showAlert(data.message, "custom", 10000);
-      setNotificationCount(prev => prev + 1);
+      console.log("📥 New appointment received:", data);
+      // showAlert(data.message, "custom", 10000);
+      setNotificationCount((prev) => prev + 1);
       const updatedAppointment = { 
         ...data.appointment,
         doctorId: {
@@ -126,44 +135,43 @@ const Dashboard = () => {
           name: data.appointment.doctorName || data.appointment.doctorId?.name || "Unknown"
         }
       };
-      console.log("calling set apptment")
       setAppointments((prev) => [updatedAppointment, ...prev]);
     });
-  
-    // ✅ Clean up on component unmount
+
+    // Clean up socket listeners when component unmounts
     return () => {
       socket.off("appointmentUpdate");
       socket.off("newAppointment");
     };
-
   }, []);
 
-    // Debounced API call for search suggestions
-    useEffect(() => {
-      const delayDebounceFn = setTimeout(() => {
-        if (searchQuery) {
-          api
-            .get("/user/searchSuggestions", { params: { query: searchQuery } })
-            .then((res) => {
-              setSuggestions(res.data);
-            })
-            .catch((err) => {
-              console.error("Error fetching suggestions:", err);
-              setSuggestions([]);
-            });
-        } else {
-          setSuggestions([]);
-        }
-      }, 300);
-  
-      return () => clearTimeout(delayDebounceFn);
-    }, [searchQuery]);
-  
-    const handleSearchChange = (e) => {
-      setSearchQuery(e.target.value);
-    };
+  // Debounced API call for search suggestions
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (searchQuery) {
+        api
+          .get("/user/searchSuggestions", { params: { query: searchQuery } })
+          .then((res) => {
+            setSuggestions(res.data);
+          })
+          .catch((err) => {
+            console.error("Error fetching suggestions:", err);
+            setSuggestions([]);
+          });
+      } else {
+        setSuggestions([]);
+      }
+    }, 300);
 
-    // When a search suggestion is clicked, use it as a query to search health records
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
+  // Handle search field change
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+  };
+
+  // When a suggestion is clicked, search health records by query
   const handleSuggestionClick = (suggestion) => {
     setSearchQuery(suggestion);
     setSuggestions([]);
@@ -178,16 +186,18 @@ const Dashboard = () => {
       });
   };
 
+  // View health record details
   const viewHealthRecordDetails = async (id) => {
     try {
       const response = await api.get(`/health-record/${id}`);
-      setSelectedRecord(response.data); // Update state with selected record details
+      setSelectedRecord(response.data);
     } catch (err) {
       console.error("Error fetching health record details:", err);
       alert("Failed to load health record details.");
     }
   };
 
+  // Delete a health record
   const deleteHealthRecord = async (id) => {
     try {
       const confirmDelete = window.confirm(
@@ -204,7 +214,7 @@ const Dashboard = () => {
     }
   };
 
-  // Function to format date
+  // Format date/time
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -216,13 +226,11 @@ const Dashboard = () => {
     });
   };
 
-  // Get the next upcoming appointment (for the action button history)
-  // Update the getNextAppointment function:
-  // Update the getNextAppointment function:
+  // Get the next upcoming appointment for the action card history
   const getNextAppointment = () => {
     if (appointments.length === 0) return "No upcoming appointments";
 
-    // Sort based on slotDateTime instead of date
+    // Sort appointments by slotDateTime
     const sortedAppointments = [...appointments].sort(
       (a, b) => new Date(a.slotDateTime) - new Date(b.slotDateTime)
     );
@@ -241,74 +249,6 @@ const Dashboard = () => {
     }
   };
 
-  {
-    /* Student Appointments Section */
-  }
-  <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 mb-8">
-    <h2 className="text-lg font-semibold mb-4 text-gray-700">
-      My Appointments
-    </h2>
-    {appointmentsLoading ? (
-      <p>Loading appointments...</p>
-    ) : appointmentsError ? (
-      <p>{appointmentsError}</p>
-    ) : appointments.length > 0 ? (
-      <table className="min-w-full bg-white border border-gray-300 rounded-lg shadow-md">
-        <thead>
-          <tr>
-            <th className="px-4 py-2 border-b text-left">Doctor</th>
-            <th className="px-4 py-2 border-b text-left">Date & Time</th>
-            <th className="px-4 py-2 border-b text-left">Status</th>
-            <th className="px-4 py-2 border-b text-left">Prescription</th>
-          </tr>
-        </thead>
-        <tbody>
-          {appointments.map((appointment) => (
-            <tr key={appointment._id || appointment.id}>
-              <td className="px-4 py-2 border-b">
-                {appointment.doctorId?.name || "Not specified"}
-              </td>
-              <td className="px-4 py-2 border-b">
-                {formatDate(appointment.slotDateTime)}
-              </td>
-              <td className="px-4 py-2 border-b">
-                <span
-                  className={`px-2 py-1 rounded-full text-xs ${
-                    appointment.status === "confirmed"
-                      ? "bg-green-100 text-green-800"
-                      : appointment.status === "pending"
-                      ? "bg-yellow-100 text-yellow-800"
-                      : appointment.status === "cancelled"
-                      ? "bg-red-100 text-red-800"
-                      : "bg-gray-100 text-gray-800"
-                  }`}
-                >
-                  {appointment.status || "N/A"}
-                </span>
-              </td>
-              <td className="px-4 py-2 border-b">
-                {appointment.prescription ? (
-                  <a
-                    href={appointment.prescription}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
-                  >
-                    View Prescription
-                  </a>
-                ) : (
-                  "No prescription"
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    ) : (
-      <p>No appointments found.</p>
-    )}
-  </div>;
-
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
@@ -316,13 +256,12 @@ const Dashboard = () => {
         <h2 className="text-xl font-bold text-green-600 mb-6">
           Student Dashboard
         </h2>
-        
         <nav className="space-y-2">
           {[
             { name: "Dashboard", path: "/dashboard" },
             { name: "Appointments", path: "/appointment" },
             { name: "Health Records", path: "/recordform" },
-            { name: "Certificate Generator", path: "/certificate" }, // Custom path
+            { name: "Certificate Generator", path: "/certificate" },
           ].map((item) => (
             <Link
               key={item.name}
@@ -333,22 +272,19 @@ const Dashboard = () => {
             </Link>
           ))}
         </nav>
-
-        {/* New AI Feature Section */}
+        {/* AI Feature Section */}
         <div className="mt-8">
           <h3 className="text-xl font-bold text-green-600 mb-4">AI Features</h3>
           <nav className="space-y-2">
-            {["Leave Concern", "Health Record Concern", "AI Diagnosis"].map(
-              (item) => (
-                <Link
-                  key={item}
-                  to={`/${item.toLowerCase().replace(/\s+/g, "-")}`}
-                  className="flex items-center px-4 py-2 text-gray-600 hover:bg-gray-100 rounded cursor-pointer"
-                >
-                  <span className="ml-2 text-lg font-medium">{item}</span>
-                </Link>
-              )
-            )}
+            {["Leave Concern", "Health Record Concern", "AI Diagnosis"].map((item) => (
+              <Link
+                key={item}
+                to={`/${item.toLowerCase().replace(/\s+/g, "-")}`}
+                className="flex items-center px-4 py-2 text-gray-600 hover:bg-gray-100 rounded cursor-pointer"
+              >
+                <span className="ml-2 text-lg font-medium">{item}</span>
+              </Link>
+            ))}
           </nav>
         </div>
       </div>
@@ -388,7 +324,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Action Buttons & History */}
+        {/* Action Cards */}
         <div className="grid grid-cols-2 gap-6 mb-8">
           {[
             {
@@ -442,270 +378,315 @@ const Dashboard = () => {
           ))}
         </div>
 
-        {/* Medical Leave Applications Section */}
-        <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 mb-8">
-          <h2 className="text-lg font-semibold mb-4 text-gray-700">
-            Medical Leave Applications
-          </h2>
-
-          {leaveLoading ? (
-            <p>Loading leave applications...</p>
-          ) : leaveError ? (
-            <p>{leaveError}</p>
-          ) : leaveApplications.length > 0 ? (
-            <table className="min-w-full bg-white border border-gray-300 rounded-lg shadow-md">
-              <thead>
-                <tr>
-                  <th className="px-4 py-2 border-b text-left">Sno.</th>
-                  <th className="px-4 py-2 border-b text-left">Date</th>
-                  <th className="px-4 py-2 border-b text-left">From Date</th>
-                  <th className="px-4 py-2 border-b text-left">To Date</th>
-                  <th className="px-4 py-2 border-b text-left">Diagnosis</th>
-                  <th className="px-4 py-2 border-b text-left">Status</th>
-                  <th className="px-4 py-2 border-b text-left">Actions</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {leaveApplications.map((leave, index) => (
-                  <tr key={leave.id}>
-                    <td className="px-4 py-2 border-b">{index + 1}</td>
-                    <td className="px-4 py-2 border-b">{leave.date}</td>
-                    <td className="px-4 py-2 border-b">{leave.fromDate}</td>
-                    <td className="px-4 py-2 border-b">{leave.toDate}</td>
-                    <td className="px-4 py-2 border-b">{leave.diagnosis}</td>
-
-                    {/* Status Highlighting */}
-                    <td className="px-4 py-2 border-b">
-                      <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          leave.status === "pending"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : leave.status === "approved"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {leave.status && typeof leave.status === "string"
-                          ? leave.status.charAt(0).toUpperCase() +
-                            leave.status.slice(1)
-                          : "N/A"}
-                      </span>
-                    </td>
-
-                    {/* View Status Button */}
-                    <td className="px-4 py-2 border-b">
-                      <button
-                        onClick={() => setSelectedLeave(leave)}
-                        className="text-blue-600 hover:underline"
-                      >
-                        View Status
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p>No medical leave applications found.</p>
-          )}
-
-          {/* Modal for viewing selected leave details */}
-          {selectedLeave && (
-            <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 mb-8">
-              <h2 className="text-lg font-semibold mb-4 text-gray-700">
-                Medical leave applications
-              </h2>
-
-              <p>
-                <strong>Reason:</strong> {selectedLeave.reason}
-              </p>
-              <p>
-                <strong>Duration:</strong> {selectedLeave.fromDate} to{" "}
-                {selectedLeave.toDate}
-              </p>
-              <p>
-                <strong>Diagnosis:</strong> {selectedLeave.diagnosis}
-              </p>
-              <p>
-                <strong>Doctor name:</strong> {selectedLeave.doctorName}
-              </p>
-
-              {/* Status with color highlighting */}
-              <p>
-                <strong>Status:</strong>
-                <span
-                  className={`ml-1 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    selectedLeave.status === "pending"
-                      ? "bg-yellow-100 text-yellow-800"
-                      : selectedLeave.status === "approved"
-                      ? "bg-green-100 text-green-800"
-                      : "bg-red-100 text-red-800"
-                  }`}
-                >
-                  {selectedLeave.status.charAt(0).toUpperCase() +
-                    selectedLeave.status.slice(1)}
-                </span>
-              </p>
-
-              {/* Close Button */}
-              <button
-                onClick={() => setSelectedLeave(null)}
-                className="mt-4 bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600"
-              >
-                Close
-              </button>
-            </div>
-          )}
+        {/* Tab Navigation */}
+        <div className="mb-6 border-b border-gray-300">
+          <nav className="flex space-x-6">
+            <button
+              className={`py-2 px-4 text-sm font-medium border-b-2 ${
+                activeTab === "leave"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-600 hover:text-blue-500"
+              }`}
+              onClick={() => setActiveTab("leave")}
+            >
+              Leave Applications
+            </button>
+            <button
+              className={`py-2 px-4 text-sm font-medium border-b-2 ${
+                activeTab === "appointments"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-600 hover:text-blue-500"
+              }`}
+              onClick={() => setActiveTab("appointments")}
+            >
+              My Appointments
+            </button>
+            <button
+              className={`py-2 px-4 text-sm font-medium border-b-2 ${
+                activeTab === "healthRecords"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-600 hover:text-blue-500"
+              }`}
+              onClick={() => setActiveTab("healthRecords")}
+            >
+              Health Records
+            </button>
+            <button
+              className={`py-2 px-4 text-sm font-medium border-b-2 ${
+                activeTab === "aiDiagnosis"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-600 hover:text-blue-500"
+              }`}
+              onClick={() => setActiveTab("aiDiagnosis")}
+            >
+              AI Diagnosis
+            </button>
+          </nav>
         </div>
 
-        {/* Student Appointments Section */}
-        {/* Student Appointments Section */}
-        <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 mb-8">
-          <h2 className="text-lg font-semibold mb-4 text-gray-700">
-            My Appointments
-          </h2>
-          {appointmentsLoading ? (
-            <p>Loading appointments...</p>
-          ) : appointmentsError ? (
-            <p>{appointmentsError}</p>
-          ) : appointments.length > 0 ? (
-            <table className="min-w-full bg-white border border-gray-300 rounded-lg shadow-md">
-              <thead>
-                <tr>
-                  <th className="px-4 py-2 border-b text-left">Doctor</th>
-                  <th className="px-4 py-2 border-b text-left">Date & Time</th>
-                  <th className="px-4 py-2 border-b text-left">Status</th>
-                  <th className="px-4 py-2 border-b text-left">Prescription</th>
-                </tr>
-              </thead>
-              <tbody>
-                {appointments.map((appointment) => (
-                  <tr key={appointment._id || appointment.id}>
-                    <td className="px-4 py-2 border-b">
-                      {appointment.doctorId?.name || "Not specified"}
-                    </td>
-                    <td className="px-4 py-2 border-b">
-                      {formatDate(appointment.slotDateTime)}
-                    </td>
-                    <td className="px-4 py-2 border-b">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs ${
-                          appointment.status === "confirmed"
-                            ? "bg-green-100 text-green-800"
-                            : appointment.status === "pending"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : appointment.status === "cancelled"
-                            ? "bg-red-100 text-red-800"
-                            : "bg-gray-100 text-gray-800"
-                        }`}
-                      >
-                        {appointment.status || "N/A"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2 border-b">
-                      {appointment.prescription ? (
-                        <a
-                          href={appointment.prescription}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline"
-                        >
-                          View Prescription
-                        </a>
-                      ) : (
-                        "No prescription"
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p>No appointments found.</p>
-          )}
-        </div>
-
-        {/* Health Records Section */}
-        <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 mb-8">
-          <h2 className="text-lg font-semibold mb-4 text-gray-700">
-            Health Records
-          </h2>
-          {loading ? (
-            <p>Loading...</p>
-          ) : error ? (
-            <p>{error}</p>
-          ) : healthRecords.length > 0 ? (
-            <table className="min-w-full bg-white border border-gray-300 rounded-lg shadow-md">
-              <thead>
-                <tr>
-                  <th className="px-4 py-2 border-b text-left">Sno.</th>
-                  <th className="px-4 py-2 border-b text-left">Diagnosis</th>
-                  <th className="px-4 py-2 border-b text-left">Date</th>
-                  <th className="px-4 py-2 border-b text-left">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {healthRecords.map((record, index) => (
-                  <tr key={record._id}>
-                    <td className="px-4 py-2 border-b">{index + 1}</td>
-                    <td className="px-4 py-2 border-b">{record.diagnosis}</td>
-                    <td className="px-4 py-2 border-b">
-                      {new Date(record.date).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-2 border-b">
-                      <button
-                        onClick={() => viewHealthRecordDetails(record._id)}
-                        className="text-blue-600 hover:underline mr-4"
-                      >
-                        View
-                      </button>
-                      <button
-                        onClick={() => deleteHealthRecord(record._id)}
-                        className="text-red-600 hover:underline"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p>No health records found.</p>
-          )}
-        </div>
-
-        {/* Display Selected Record Details */}
-        {selectedRecord && (
+        {/* Conditional Rendering of Sections based on Active Tab */}
+        {activeTab === "leave" && (
           <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 mb-8">
             <h2 className="text-lg font-semibold mb-4 text-gray-700">
-              Health Record Details
+              Medical Leave Applications
             </h2>
+            {leaveLoading ? (
+              <p>Loading leave applications...</p>
+            ) : leaveError ? (
+              <p>{leaveError}</p>
+            ) : leaveApplications.length > 0 ? (
+              <table className="min-w-full bg-white border border-gray-300 rounded-lg shadow-md">
+                <thead>
+                  <tr>
+                    <th className="px-4 py-2 border-b text-left">Sno.</th>
+                    <th className="px-4 py-2 border-b text-left">Date</th>
+                    <th className="px-4 py-2 border-b text-left">From Date</th>
+                    <th className="px-4 py-2 border-b text-left">To Date</th>
+                    <th className="px-4 py-2 border-b text-left">Diagnosis</th>
+                    <th className="px-4 py-2 border-b text-left">Status</th>
+                    <th className="px-4 py-2 border-b text-left">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {leaveApplications.map((leave, index) => (
+                    <tr key={leave._id}>
+                      <td className="px-4 py-2 border-b">{index + 1}</td>
+                      <td className="px-4 py-2 border-b">{leave.date}</td>
+                      <td className="px-4 py-2 border-b">{leave.fromDate}</td>
+                      <td className="px-4 py-2 border-b">{leave.toDate}</td>
+                      <td className="px-4 py-2 border-b">{leave.diagnosis}</td>
+                      <td className="px-4 py-2 border-b">
+                        <span
+                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            leave.status === "pending"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : leave.status === "approved"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {leave.status && typeof leave.status === "string"
+                            ? leave.status.charAt(0).toUpperCase() + leave.status.slice(1)
+                            : "N/A"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 border-b">
+                        <button
+                          onClick={() => setSelectedLeave(leave)}
+                          className="text-blue-600 hover:underline"
+                        >
+                          View Status
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p>No medical leave applications found.</p>
+            )}
 
-            <p>
-              <strong>Diagnosis:</strong> {selectedRecord.diagnosis}
-            </p>
-            <p>
-              <strong>Date:</strong>{" "}
-              {new Date(selectedRecord.date).toLocaleDateString()}
-            </p>
-            <p>
-              <strong>Treatment:</strong> {selectedRecord.treatment || "N/A"}
-            </p>
-            <p>
-              <strong>Prescription:</strong>{" "}
-              {selectedRecord.prescription || "N/A"}
-            </p>
-            <button
-              onClick={() => setSelectedRecord(null)}
-              className="mt-4 bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600"
-            >
-              Close
-            </button>
+            {/* Modal for viewing selected leave details */}
+            {selectedLeave && (
+              <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 mb-8">
+                <h2 className="text-lg font-semibold mb-4 text-gray-700">
+                  Medical Leave Details
+                </h2>
+                <p>
+                  <strong>Reason:</strong> {selectedLeave.reason}
+                </p>
+                <p>
+                  <strong>Duration:</strong> {selectedLeave.fromDate} to {selectedLeave.toDate}
+                </p>
+                <p>
+                  <strong>Diagnosis:</strong> {selectedLeave.diagnosis}
+                </p>
+                <p>
+                  <strong>Doctor name:</strong> {selectedLeave.doctorName}
+                </p>
+                <p>
+                  <strong>Status:</strong>
+                  <span
+                    className={`ml-1 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                      selectedLeave.status === "pending"
+                        ? "bg-yellow-100 text-yellow-800"
+                        : selectedLeave.status === "approved"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-red-100 text-red-800"
+                    }`}
+                  >
+                    {selectedLeave.status.charAt(0).toUpperCase() +
+                      selectedLeave.status.slice(1)}
+                  </span>
+                </p>
+                <button
+                  onClick={() => setSelectedLeave(null)}
+                  className="mt-4 bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600"
+                >
+                  Close
+                </button>
+              </div>
+            )}
           </div>
-          
         )}
+
+        {activeTab === "appointments" && (
+          <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 mb-8">
+            <h2 className="text-lg font-semibold mb-4 text-gray-700">
+              My Appointments
+            </h2>
+            {appointmentsLoading ? (
+              <p>Loading appointments...</p>
+            ) : appointmentsError ? (
+              <p>{appointmentsError}</p>
+            ) : appointments.length > 0 ? (
+              <table className="min-w-full bg-white border border-gray-300 rounded-lg shadow-md">
+                <thead>
+                  <tr>
+                    <th className="px-4 py-2 border-b text-left">Doctor</th>
+                    <th className="px-4 py-2 border-b text-left">Date & Time</th>
+                    <th className="px-4 py-2 border-b text-left">Status</th>
+                    <th className="px-4 py-2 border-b text-left">Prescription</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {appointments.map((appointment) => (
+                    <tr key={appointment._id || appointment.id}>
+                      <td className="px-4 py-2 border-b">
+                        {appointment.doctorId?.name || "Not specified"}
+                      </td>
+                      <td className="px-4 py-2 border-b">
+                        {formatDate(appointment.slotDateTime)}
+                      </td>
+                      <td className="px-4 py-2 border-b">
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs ${
+                            appointment.status === "confirmed"
+                              ? "bg-green-100 text-green-800"
+                              : appointment.status === "pending"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : appointment.status === "cancelled"
+                              ? "bg-red-100 text-red-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
+                          {appointment.status || "N/A"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 border-b">
+                        {appointment.prescription ? (
+                          <a
+                            href={appointment.prescription}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                          >
+                            View Prescription
+                          </a>
+                        ) : (
+                          "No prescription"
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p>No appointments found.</p>
+            )}
+          </div>
+        )}
+
+        {activeTab === "healthRecords" && (
+          <>
+            <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 mb-8">
+              <h2 className="text-lg font-semibold mb-4 text-gray-700">
+                Health Records
+              </h2>
+              {loading ? (
+                <p>Loading...</p>
+              ) : error ? (
+                <p>{error}</p>
+              ) : healthRecords.length > 0 ? (
+                <table className="min-w-full bg-white border border-gray-300 rounded-lg shadow-md">
+                  <thead>
+                    <tr>
+                      <th className="px-4 py-2 border-b text-left">Sno.</th>
+                      <th className="px-4 py-2 border-b text-left">Diagnosis</th>
+                      <th className="px-4 py-2 border-b text-left">Date</th>
+                      <th className="px-4 py-2 border-b text-left">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {healthRecords.map((record, index) => (
+                      <tr key={record._id}>
+                        <td className="px-4 py-2 border-b">{index + 1}</td>
+                        <td className="px-4 py-2 border-b">{record.diagnosis}</td>
+                        <td className="px-4 py-2 border-b">
+                          {new Date(record.date).toLocaleDateString()}
+                        </td>
+                        <td className="px-4 py-2 border-b">
+                          <button
+                            onClick={() => viewHealthRecordDetails(record._id)}
+                            className="text-blue-600 hover:underline mr-4"
+                          >
+                            View
+                          </button>
+                          <button
+                            onClick={() => deleteHealthRecord(record._id)}
+                            className="text-red-600 hover:underline"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p>No health records found.</p>
+              )}
+            </div>
+            {/* Display Selected Health Record Details */}
+            {selectedRecord && (
+              <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 mb-8">
+                <h2 className="text-lg font-semibold mb-4 text-gray-700">
+                  Health Record Details
+                </h2>
+                <p>
+                  <strong>Diagnosis:</strong> {selectedRecord.diagnosis}
+                </p>
+                <p>
+                  <strong>Date:</strong>{" "}
+                  {new Date(selectedRecord.date).toLocaleDateString()}
+                </p>
+                <p>
+                  <strong>Treatment:</strong> {selectedRecord.treatment || "N/A"}
+                </p>
+                <p>
+                  <strong>Prescription:</strong>{" "}
+                  {selectedRecord.prescription || "N/A"}
+                </p>
+                <button
+                  onClick={() => setSelectedRecord(null)}
+                  className="mt-4 bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600"
+                >
+                  Close
+                </button>
+              </div>
+            )}
+          </>
+        )}
+
+        {activeTab === "aiDiagnosis" && (
+          <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 mb-8">
+            <h2 className="text-lg font-semibold mb-4 text-gray-700">
+              AI Diagnosis
+            </h2>
+            <p>This is where your AI Diagnosis content would go.</p>
+          </div>
+        )}
+
         {/* Modal for displaying search results */}
         {searchResults.length > 0 && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
@@ -744,4 +725,6 @@ const Dashboard = () => {
     </div>
   );
 };
+
 export default Dashboard;
+  

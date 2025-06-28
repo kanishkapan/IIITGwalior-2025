@@ -15,15 +15,20 @@ const DoctorTimeSlotSelector = () => {
     '04:00 PM', '05:00 PM', '06:00 PM'
   ];
 
-  // Date selection handler
+  // Date selection handler - moved to form submission to prevent multiple triggers
   const handleDateSelect = (e) => {
-    const selectedDate = e.target.value;
-    if (!selectedDates.includes(selectedDate)) {
-      setSelectedDates([...selectedDates, selectedDate]);
-      setTimeSlots({
-        ...timeSlots,
-        [selectedDate]: []
-      });
+    if (e.key === 'Enter' || e.type === 'blur') {
+      e.preventDefault();
+      const selectedDate = e.target.value;
+      if (selectedDate && !selectedDates.includes(selectedDate)) {
+        setSelectedDates([...selectedDates, selectedDate]);
+        setTimeSlots({
+          ...timeSlots,
+          [selectedDate]: []
+        });
+        // Clear the input field after selection
+        e.target.value = '';
+      }
     }
   };
 
@@ -72,6 +77,23 @@ const DoctorTimeSlotSelector = () => {
       });
     });
     return formattedSlots;
+  };
+
+  // Handle add date button click
+  const handleAddDate = () => {
+    const dateInput = document.getElementById('dateInput');
+    if (dateInput && dateInput.value) {
+      const selectedDate = dateInput.value;
+      if (!selectedDates.includes(selectedDate)) {
+        setSelectedDates([...selectedDates, selectedDate]);
+        setTimeSlots({
+          ...timeSlots,
+          [selectedDate]: []
+        });
+        // Clear the input field
+        dateInput.value = '';
+      }
+    }
   };
 
   // Submit time slots to the API
@@ -134,12 +156,22 @@ const DoctorTimeSlotSelector = () => {
       <form onSubmit={handleSubmit}>
         <div className="mb-6">
           <label className="block text-green-700 mb-2 font-medium">Select Date</label>
-          <input 
-            type="date" 
-            className="w-full p-2 border border-green-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-            onChange={handleDateSelect}
-            min={new Date().toISOString().split('T')[0]}
-          />
+          <div className="flex space-x-2">
+            <input 
+              id="dateInput"
+              type="date" 
+              className="w-full p-2 border border-green-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+              onKeyDown={(e) => e.key === 'Enter' && handleAddDate()}
+              min={new Date().toISOString().split('T')[0]}
+            />
+            <button
+              type="button"
+              className="bg-green-600 text-white px-4 py-2 rounded-lg"
+              onClick={handleAddDate}
+            >
+              Add Date
+            </button>
+          </div>
         </div>
         
         {selectedDates.length > 0 && (

@@ -8,10 +8,10 @@ const teamMembers = [
     image: "/./src/assets/Screenshot 2025-03-11 205754.png"
   },
   {
-    name: "Urvashi Marmat",
-    role: "Frontend Lead",
-    experience: "Winner at Hackverse 5.0 NIT Surathkal | MERN Developer | Frontend Expert | Skilled in Problem-Solving",
-    image: "./src/assets/urvashi.png"
+    name: "Siya Pari",
+    role: "Backend Lead",
+    experience: "GNDU CSE'28 🎓 || Contributor @ GSSOC-Ext'24 || Tech enthusiast 👩‍💻",
+    image: "./src/assets/WhatsApp Image 2025-04-03 at 18.05.04_2535e614.jpg"
   },
   {
     name: "Mufaddal Ratlamwala",
@@ -20,18 +20,12 @@ const teamMembers = [
     image: "./src/assets/Screenshot 2025-03-11 205909.png"
   },
   {
-    name: "Tannisa Sinha",
+    name: "Athrav Shrotiya",
     role: "AI lead ",
-    experience: "Ai and research lead make trained machine learning models.",
-    image: "./src/assets/tanissa.jpg"
+    experience: "Electronics and Tech. Enthusiat || DSA || Python || Data Science || Machine Learning || Content Writer|| 4⭐⭐⭐⭐ Python HackerRank",
+    image: "./src/assets/image.png"
   },
-  {
-    name: "Maneet Singh Chhabra ",
-    role: "Blockchain Lead/backend Dev",
-    experience: "CSE undergrad at IET-DAVV | MERN Developer | DSA | Open Source | Competitive programming",
-    image: "./src/assets/Screenshot 2025-03-11 210252.png"
-  },
-  
+
 ];
 
 const TeamSection = () => {
@@ -39,7 +33,7 @@ const TeamSection = () => {
     <div className="min-h-screen bg-gray-100 py-12 px-6 md:px-12">
       <h1 className="text-center text-2xl md:text-4xl lg:text-5xl text-green-500 font-light leading-relaxed tracking-wide">PEOPLE BEHIND AROGYA VAULT </h1>
       <p className="text-center text-gray-700 mb-8">Meet the skilled and experienced team behind our successful medical app</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6 max-w-6xl mx-auto">
         {teamMembers.map((member, index) => (
           <div 
             key={index} 

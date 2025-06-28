@@ -1,4 +1,5 @@
 import { User, Appointment,Notification } from "../models/index.js";
+import sendMail from "../utils/mailer.js";
 
 export const bookAppointment = async (req, res) => {
   try {
@@ -49,8 +50,11 @@ export const bookAppointment = async (req, res) => {
 
     await appointment.save();
 
-    const doctorDetails = await User.findById(doctorId).select("name");
+    const doctorDetails = await User.findById(doctorId).select("name email");
     const studentDetails = await User.findById(studentId).select("name");
+    
+   
+
     //storing in db 
     const notification = await Notification.create({
       recipientId: doctorId,
@@ -87,6 +91,32 @@ export const bookAppointment = async (req, res) => {
       });
       
     }
+
+   
+    try {
+      const mailSubject = "📅 New Appointment Request";
+      const mailText = `You have a new appointment request from ${studentDetails.name} on ${slotDateTime}.`;
+      const mailHtml = `
+        <h3>New Appointment Request</h3>
+        <p><strong>Student:</strong> ${studentDetails.name}</p>
+        <p><strong>Date & Time:</strong> ${slotDateTime}</p>
+        <p>Please log in to your dashboard to confirm or cancel this appointment.</p>
+      `;
+      console.log(`...mail ....`,doctorDetails.email);
+      await sendMail(
+         doctorDetails.email,
+          mailSubject,
+         mailText,
+         mailHtml,
+      );
+
+      console.log("✅ Email sent to doctor:", doctorDetails.email);
+    } catch (emailError) {
+      console.error("❌ Error sending email:", emailError);
+    }
+
+
+    
 
     res.status(201).json({ message: "Appointment booked successfully.", appointment });
   } catch (error) {

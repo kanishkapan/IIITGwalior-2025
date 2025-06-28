@@ -1,180 +1,213 @@
 import React, { useState } from 'react';
-import { Mic, MicOff, Calendar, Clock, User, FileText, Send } from 'lucide-react';
+import axios from 'axios';
 
-const Voice = () => {
-  const [isListening, setIsListening] = useState(false);
-  const [mode, setMode] = useState('initial'); // initial, doctor, leave
-  const [messages, setMessages] = useState([
-    { sender: 'ai', text: 'Hello! Would you like to book a doctor appointment or apply for leave?' }
-  ]);
-  const [userInput, setUserInput] = useState('');
+export default function Voice() {
+  const [mode, setMode] = useState('voice'); // 'voice' or 'manual'
+  const [status, setStatus] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const toggleListening = () => {
-    setIsListening(!isListening);
-  };
+  // For manual booking
+  const [step, setStep] = useState(1);
+  const [doctorName, setDoctorName] = useState('');
+  const [purpose, setPurpose] = useState('');
+  const [date, setDate] = useState('');
+  const [time, setTime] = useState('');
 
-  const handleSendMessage = () => {
-    if (!userInput.trim()) return;
-    
-    // Add user message
-    setMessages([...messages, { sender: 'user', text: userInput }]);
-    
-    // Process input and determine response
-    let aiResponse = '';
-    
-    if (mode === 'initial') {
-      if (userInput.toLowerCase().includes('doctor') || userInput.toLowerCase().includes('appointment')) {
-        setMode('doctor');
-        aiResponse = "Let's book your doctor appointment. What's the doctor's name?";
-      } else if (userInput.toLowerCase().includes('leave')) {
-        setMode('leave');
-        aiResponse = "I'll help you apply for leave. How many days do you need off?";
-      } else {
-        aiResponse = "I didn't catch that. Would you like to book a doctor appointment or apply for leave?";
-      }
-    } else if (mode === 'doctor') {
-      // Simple state management for doctor booking flow
-      const lastMessage = messages[messages.length - 1];
-      if (lastMessage.text.includes("doctor's name")) {
-        aiResponse = "When would you like to schedule this appointment?";
-      } else if (lastMessage.text.includes("schedule this appointment")) {
-        aiResponse = "What's the reason for your visit?";
-      } else if (lastMessage.text.includes("reason for your visit")) {
-        aiResponse = "Great! I've scheduled your appointment. Anything else you need?";
-        setMode('initial');
-      }
-    } else if (mode === 'leave') {
-      // Simple state management for leave application flow
-      const lastMessage = messages[messages.length - 1];
-      if (lastMessage.text.includes("how many days")) {
-        aiResponse = "What dates will you be away?";
-      } else if (lastMessage.text.includes("dates")) {
-        aiResponse = "What's the reason for your leave?";
-      } else if (lastMessage.text.includes("reason for your leave")) {
-        aiResponse = "Your leave request has been submitted. Is there anything else I can help with?";
-        setMode('initial');
-      }
+  // Calls the voice command endpoint
+  const handleVoiceCommand = async () => {
+    setLoading(true);
+    setStatus('Starting voice assistant…');
+    try {
+      const response = await axios.get('http://localhost:5000/voice-command');
+      setStatus(response.data.message || 'Session ended.');
+    } catch (error) {
+      setStatus('Error connecting to voice assistant.');
     }
-    
-    // Add AI response with a small delay to simulate thinking
-    setTimeout(() => {
-      setMessages(prev => [...prev, { sender: 'ai', text: aiResponse }]);
-    }, 500);
-    
-    setUserInput('');
+    setLoading(false);
   };
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      handleSendMessage();
+  // Handles manual booking submission.
+  const handleManualSubmit = async () => {
+    // For demonstration we log the input.
+    // Note: Your Python endpoint currently does not accept manual input,
+    // so this call is to the existing /book-appointment endpoint.
+    setLoading(true);
+    setStatus('Submitting your appointment…');
+    try {
+      // In a real scenario you’d send the collected data as POST body or query params.
+      // Your backend function would need to be modified to use these values.
+      const response = await axios.get('http://localhost:5000/book-appointment', {
+        params: { doctor_name: doctorName, purpose, date, time },
+      });
+      setStatus(response.data.message || 'Appointment booked.');
+    } catch (error) {
+      setStatus('Error submitting appointment.');
+    }
+    setLoading(false);
+  };
+
+  // Render the manual form steps
+  const renderManualStep = () => {
+    switch (step) {
+      case 1:
+        return (
+          <div>
+            <p className="text-green-800 mb-2">Enter the Doctor's Name:</p>
+            <input
+              type="text"
+              value={doctorName}
+              onChange={(e) => setDoctorName(e.target.value)}
+              className="w-full p-2 border border-green-300 rounded"
+            />
+            <button
+              onClick={() => doctorName && setStep(2)}
+              className="mt-4 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded"
+            >
+              Next
+            </button>
+          </div>
+        );
+      case 2:
+        return (
+          <div>
+            <p className="text-green-800 mb-2">Enter the Purpose of Appointment:</p>
+            <input
+              type="text"
+              value={purpose}
+              onChange={(e) => setPurpose(e.target.value)}
+              className="w-full p-2 border border-green-300 rounded"
+            />
+            <div className="flex justify-between mt-4">
+              <button
+                onClick={() => setStep(1)}
+                className="px-4 py-2 bg-green-400 hover:bg-green-500 text-white rounded"
+              >
+                Back
+              </button>
+              <button
+                onClick={() => purpose && setStep(3)}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        );
+      case 3:
+        return (
+          <div>
+            <p className="text-green-800 mb-2">Enter the Appointment Date (YYYY-MM-DD):</p>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full p-2 border border-green-300 rounded"
+            />
+            <div className="flex justify-between mt-4">
+              <button
+                onClick={() => setStep(2)}
+                className="px-4 py-2 bg-green-400 hover:bg-green-500 text-white rounded"
+              >
+                Back
+              </button>
+              <button
+                onClick={() => date && setStep(4)}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        );
+      case 4:
+        return (
+          <div>
+            <p className="text-green-800 mb-2">Enter the Appointment Time (e.g., 02:30 PM):</p>
+            <input
+              type="text"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              placeholder="e.g., 02:30 PM"
+              className="w-full p-2 border border-green-300 rounded"
+            />
+            <div className="flex justify-between mt-4">
+              <button
+                onClick={() => setStep(3)}
+                className="px-4 py-2 bg-green-400 hover:bg-green-500 text-white rounded"
+              >
+                Back
+              </button>
+              <button
+                onClick={handleManualSubmit}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded"
+                disabled={loading}
+              >
+                {loading ? 'Submitting...' : 'Submit Appointment'}
+              </button>
+            </div>
+          </div>
+        );
+      default:
+        return null;
     }
   };
 
   return (
-    <div className="flex flex-col h-screen bg-white text-green-600 p-6 font-sans">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-green-700">AI ASSISTANT</h1>
-        <div className="bg-green-100 px-3 py-1 rounded-full border border-green-300">
-          <span className="text-sm font-medium text-green-700">ONLINE</span>
-        </div>
-      </div>
-      
-      {/* Mode Selection */}
-      <div className="flex mb-6 space-x-4">
-        <button 
-          className={`flex items-center space-x-2 px-4 py-2 rounded-lg shadow-md transition-all ${
-            mode === 'doctor' 
-              ? 'bg-green-600 text-white' 
-              : 'bg-white text-green-700 border-2 border-green-500 hover:bg-green-50'
-          }`}
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6">
+      <h1 className="text-4xl font-bold text-green-700 mb-6">Aarogya Mitra</h1>
+
+      {/* Mode Toggle */}
+      <div className="mb-6">
+        <button
           onClick={() => {
-            setMode('doctor');
-            setMessages([...messages, { sender: 'ai', text: "Let's book your doctor appointment. What's the doctor's name?" }]);
+            setMode('voice');
+            setStatus('');
           }}
+          className={`px-4 py-2 rounded-l ${mode === 'voice' ? 'bg-green-600 text-white' : 'bg-green-200 text-green-800'}`}
         >
-          <Calendar size={18} />
-          <span>Book Appointment</span>
+          Voice Assistant
         </button>
-        
-        <button 
-          className={`flex items-center space-x-2 px-4 py-2 rounded-lg shadow-md transition-all ${
-            mode === 'leave' 
-              ? 'bg-green-600 text-white' 
-              : 'bg-white text-green-700 border-2 border-green-500 hover:bg-green-50'
-          }`}
+        <button
           onClick={() => {
-            setMode('leave');
-            setMessages([...messages, { sender: 'ai', text: "I'll help you apply for leave. How many days do you need off?" }]);
+            setMode('manual');
+            setStatus('');
+            setStep(1);
           }}
+          className={`px-4 py-2 rounded-r ${mode === 'manual' ? 'bg-green-600 text-white' : 'bg-green-200 text-green-800'}`}
         >
-          <FileText size={18} />
-          <span>Apply for Leave</span>
+          Manual Booking
         </button>
       </div>
-      
-      {/* Chat Display */}
-      <div className="flex-1 overflow-auto mb-4 p-4 bg-green-50 rounded-lg border border-green-200 shadow-lg">
-        <div className="space-y-4">
-          {messages.map((message, index) => (
-            <div 
-              key={index}
-              className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div 
-                className={`max-w-3/4 p-3 rounded-lg shadow ${
-                  message.sender === 'user' 
-                    ? 'bg-green-600 text-white rounded-br-none' 
-                    : 'bg-white text-green-800 rounded-bl-none border-l-4 border-green-500'
-                }`}
-              >
-                {message.text}
-              </div>
-            </div>
-          ))}
+
+      {mode === 'voice' ? (
+        <div className="flex flex-col items-center">
+          <p className="text-green-800 mb-4 text-center max-w-md">
+            Use your voice to interact with Aarogya Mitra for booking appointments and applying for leave.
+          </p>
+          <button
+            onClick={handleVoiceCommand}
+            disabled={loading}
+            className={`px-6 py-3 rounded-full font-semibold shadow-lg transition-all duration-300 ${
+              loading
+                ? 'bg-green-300 cursor-not-allowed'
+                : 'bg-green-600 hover:bg-green-700 text-white'
+            }`}
+          >
+            {loading ? 'Listening...' : 'Start Voice Assistant'}
+          </button>
         </div>
-      </div>
-      
-      {/* Input Area */}
-      <div className="flex items-center space-x-4 bg-green-50 p-4 rounded-lg border border-green-200 shadow-lg">
-        <button 
-          className={`p-3 rounded-full shadow-md ${
-            isListening 
-              ? 'bg-green-600 text-white animate-pulse' 
-              : 'bg-white text-green-700 border-2 border-green-500 hover:bg-green-50'
-          }`}
-          onClick={toggleListening}
-        >
-          {isListening ? <MicOff size={22} /> : <Mic size={22} />}
-        </button>
-        
-        <input
-          type="text"
-          value={userInput}
-          onChange={(e) => setUserInput(e.target.value)}
-          onKeyPress={handleKeyPress}
-          className="flex-1 bg-white text-green-800 p-3 rounded-lg border-2 border-green-300 focus:outline-none focus:border-green-600 focus:ring-2 focus:ring-green-200"
-          placeholder={isListening ? "Listening..." : "Type your message..."}
-        />
-        
-        <button 
-          className="p-3 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors shadow-md"
-          onClick={handleSendMessage}
-        >
-          <Send size={22} />
-        </button>
-      </div>
-      
-      {/* Status Bar */}
-      <div className="flex justify-between items-center mt-4 text-xs text-green-600 font-medium">
-        <div>MODE: {mode.toUpperCase()}</div>
-        <div className="flex items-center">
-          <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
-          <span>SYSTEM READY</span>
+      ) : (
+        <div className="w-full max-w-md">
+          <h2 className="text-2xl font-semibold text-green-700 mb-4">Manual Booking</h2>
+          {renderManualStep()}
         </div>
-      </div>
+      )}
+
+      {status && (
+        <div className="mt-6 bg-green-50 border border-green-200 rounded-xl p-4 w-full max-w-md text-center shadow-sm">
+          <p className="text-green-700 font-medium">{status}</p>
+        </div>
+      )}
     </div>
   );
-};
-
-export default Voice;
+}

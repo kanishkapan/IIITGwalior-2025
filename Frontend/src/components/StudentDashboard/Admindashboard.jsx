@@ -5,6 +5,7 @@ import { Bell, Settings, Search, Eye, Calendar, FileText, User, UserPlus, Users,
 import {api} from '../../axios.config';
 import Notibell from '../Noti/Notibell';
 import socket from "../../socket"; // Make sure it's the same shared socket instance
+import { showAlert } from '../alert-system';
 
 const AdminDashboard = () => {
   // Sample data for student leave applications
@@ -14,6 +15,11 @@ const AdminDashboard = () => {
 
   // Sample data for health records
   const [healthRecords, setHealthRecords] = useState([]);
+
+  // New states for search suggestions
+  const [searchQuery, setSearchQuery] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [searchResults, setSearchResults] = useState([]);
 
   useEffect(() => {
     const fetchHealthRecords = async () => {
@@ -79,37 +85,95 @@ const AdminDashboard = () => {
       }
     };
     fetchLeaveApplications();
-     socket.on("newLeaveNotification", (data) => {
-          console.log("📬 Leave notification received in dashboard:", data);
+    
+    socket.on("newLeaveNotification", (data) => {
+      console.log("📬 Leave notification received in dashboard:", data);
       
-          if (data.leave) {
-            setLeaveApplications((prev) => {
-              const exists = prev.some((item) => item._id === data.leave._id);
-              if (exists) {
-                return prev.map((item) =>
-                  item._id === data.leave._id ? { ...item, ...data.leave } : item
-                );
-              } else {
-                return [data.leave, ...prev];
-              }
-            });
+      if (data.notification) {
+        showAlert(data.notification.message);
+      }
+      console.log('leave object is ', data.leave);
+      
+      if (data.leave) {
+        setLeaveApplications((prev) => {
+          // Ensure we always use _id as the identifier from backend, but store as id in frontend
+          const leaveId = data.leave._id;
+          
+          const formattedLeave = {
+            ...data.leave,
+            id: leaveId, // Store as id for frontend consistency
+            duration: `${data.leave.fromDate} to ${data.leave.toDate}`
+          };
+    
+          // Check if item exists using the id property that our frontend uses
+          const exists = prev.some((item) => item.id === leaveId);
+          
+          if (exists) {
+            return prev.map((item) =>
+              item.id === leaveId ? { ...item, ...formattedLeave } : item
+            );
+          } else {
+            return [formattedLeave, ...prev];
           }
         });
-        return () => {
-          socket.off("newLeaveNotification");
-        };
-  }, []);
+      }
+    });
+    
+    return () => {
+      socket.off("newLeaveNotification");
+    };
+}, []);
 
-  const updateLeaveStatus = async (id, status) => {
-    try {
-      await api.patch(`/medical-leaves/${id}/status`, { status });
-      // Refresh the leave applications after updating
-      const response = await api.get("/medical-leaves");
-      setLeaveApplications(response.data);
-    } catch (error) {
-      console.error("Error updating leave status:", error);
-    }
-  };
+  // Debounced API call for search suggestions
+      useEffect(() => {
+        const delayDebounceFn = setTimeout(() => {
+          if (searchQuery) {
+            api
+              .get("/medical-leaves/searchSuggestions", { params: { query: searchQuery } })
+              .then((res) => {
+                setSuggestions(res.data);
+              })
+              .catch((err) => {
+                console.error("Error fetching suggestions:", err);
+                setSuggestions([]);
+              });
+          } else {
+            setSuggestions([]);
+          }
+        }, 300);
+    
+        return () => clearTimeout(delayDebounceFn);
+      }, [searchQuery]);
+    
+      const handleSearchChange = (e) => {
+        setSearchQuery(e.target.value);
+      };
+  
+      // When a search suggestion is clicked, use it as a query to search health records
+    const handleSuggestionClick = (suggestion) => {
+      setSearchQuery(suggestion);
+      setSuggestions([]);
+      api
+        .get("/medical-leaves/search", { params: { query: suggestion } })
+        .then((res) => {
+          setSearchResults(res.data);
+        })
+        .catch((err) => {
+          console.error("Error fetching search results:", err);
+          setSearchResults([]);
+        });
+    };
+
+    const updateLeaveStatus = async (id, status) => {
+      try {
+        await api.patch(`/medical-leaves/${id}/status`, { status });
+        // Refresh the leave applications after updating
+        const response = await api.get("/medical-leaves");
+        setLeaveApplications(response.data);
+      } catch (error) {
+        console.error("Error updating leave status:", error);
+      }
+    };
   const [selectedLeave, setSelectedLeave] = useState(null);
 
   const viewLeaveDetails = async (id) => {
@@ -168,10 +232,29 @@ const AdminDashboard = () => {
           <div className="flex items-center space-x-4">
         
             <div className="relative">
-              <Search className="w-5 h-5 text-gray-400 absolute left-3 top-3" />
-            
-              <input type="text" placeholder="Search..." className="pl-10 pr-4 py-2 border rounded-lg" />
-            </div>
+                          <Search className="w-5 h-5 text-gray-400 absolute left-3 top-3" />
+                          <input
+                            type="text"
+                            placeholder="Search..."
+                            className="pl-10 pr-4 py-2 border rounded-lg"
+                            value={searchQuery}
+                            onChange={handleSearchChange}
+                          />
+                          {/* Dropdown for suggestions */}
+                          {suggestions.length > 0 && (
+                            <div className="absolute bg-white border rounded-lg mt-1 w-full z-10">
+                              {suggestions.map((item, index) => (
+                                <div
+                                  key={index}
+                                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                                  onClick={() => handleSuggestionClick(item)}
+                                >
+                                  {item}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
             <Notibell className="w-6 h-6 text-gray-400 cursor-pointer" />
           
             <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
@@ -265,8 +348,14 @@ const AdminDashboard = () => {
                     </tr>
                   </thead> 
                   <tbody className="bg-white divide-y divide-gray-200">
-  {leaveApplications.map((app,index) => (
-    <tr key={app.id} className="hover:bg-gray-50">
+  {[...leaveApplications]
+        .sort((a, b) => {
+          const aStart = new Date(a.duration.split(" to ")[0]);
+          const bStart = new Date(b.duration.split(" to ")[0]);
+          return bStart - aStart; // Sort by startDate (descending)
+        })
+        .map((app,index) => (
+    <tr key={app._id} className="hover:bg-gray-50">
       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index+1}</td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.studentName}</td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.studentId}</td>
@@ -364,60 +453,67 @@ const AdminDashboard = () => {
 
           {/* Health Records Tab */}
           {activeTab === 'health' && (
-  <div>
-    <div className="flex justify-between items-center mb-6">
+  <div className="w-full max-w-full">
+    <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 space-y-4 md:space-y-0">
       <h2 className="text-xl font-semibold">Student Health Records</h2>
-      <div className="flex space-x-2">
-        <input type="text" placeholder="Search by ID or Name" className="border rounded-lg px-3 py-2" />
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center">
+      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+        <input 
+          type="text" 
+          placeholder="Search by ID or Name" 
+          className="border rounded-lg px-3 py-2 w-full sm:w-auto" 
+        />
+        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center justify-center">
           <FileText className="w-4 h-4 mr-2" /> Add Record
         </button>
       </div>
     </div>
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Record ID</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Name</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student ID</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Diagnosis</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prescription</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {healthRecords.map((record, index) => (
-            <tr key={record.id} className="hover:bg-gray-50">
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.studentName}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.studentId}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.gender}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.diagnosis}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.date}</td>
-              <td className="px-6 py-4 whitespace-nowrap">{record.prescription}</td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                {record.docUrls && record.docUrls.length > 0 ? (
-                  <button
-                    onClick={() => setSelectedRecord(record)}
-                    className="text-blue-600 hover:text-blue-900"
-                  >
-                    View Attachments
-                  </button>
-                ) : (
-                  <span className="text-gray-500">No Attachments</span>
-                )}
-              </td>
+    
+    <div className="w-full overflow-hidden">
+      <div className="overflow-x-auto shadow rounded-lg">
+        <table className="w-full table-fixed divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="w-[8%] px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Record ID</th>
+              <th className="w-[14%] px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Name</th>
+              <th className="w-[12%] px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student ID</th>
+              <th className="w-[10%] px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</th>
+              <th className="w-[14%] px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Diagnosis</th>
+              <th className="w-[12%] px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+              <th className="w-[14%] px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prescription</th>
+              <th className="w-[16%] px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {healthRecords.map((record, index) => (
+              <tr key={record.id} className="hover:bg-gray-50">
+                <td className="px-3 sm:px-4 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900 truncate">{index + 1}</td>
+                <td className="px-3 sm:px-4 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 truncate">{record.studentName}</td>
+                <td className="px-3 sm:px-4 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 truncate">{record.studentId}</td>
+                <td className="px-3 sm:px-4 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 truncate">{record.gender}</td>
+                <td className="px-3 sm:px-4 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 truncate">{record.diagnosis}</td>
+                <td className="px-3 sm:px-4 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 truncate">{record.date}</td>
+                <td className="px-3 sm:px-4 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 truncate">{record.prescription}</td>
+                <td className="px-3 sm:px-4 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm truncate">
+                  {record.docUrls && record.docUrls.length > 0 ? (
+                    <button
+                      onClick={() => setSelectedRecord(record)}
+                      className="text-blue-600 hover:text-blue-900 text-xs sm:text-sm"
+                    >
+                      View Attachments
+                    </button>
+                  ) : (
+                    <span className="text-gray-500 text-xs sm:text-sm">No Attachments</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       
       {selectedRecord && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
-          <div className="relative top-20 mx-auto p-5 border w-[90%] md:w-[50%] shadow-lg rounded-md bg-white">
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-start justify-center pt-4 sm:pt-10">
+          <div className="relative mx-auto p-4 sm:p-5 border w-[95%] sm:w-[80%] md:w-[70%] lg:w-[60%] xl:w-[50%] shadow-lg rounded-md bg-white max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-medium leading-none mb-4">
               Attachments for {selectedRecord.studentName}
             </h3>
@@ -433,13 +529,14 @@ const AdminDashboard = () => {
                     frameBorder={1}
                     width="100%"
                     height={300}
+                    className="border border-gray-300"
                   ></iframe>
                 ) : (
                   // Render Image
                   <img
                     src={attachment.url}
                     alt={`Attachment ${index + 1}`}
-                    className="max-w-full h-auto border border-gray-300"
+                    className="max-w-full h-auto border border-gray-300 mx-auto"
                   />
                 )}
                 <a
@@ -454,12 +551,14 @@ const AdminDashboard = () => {
             ))}
 
             {/* Close Button */}
-            <button
-              onClick={() => setSelectedRecord(null)}
-              className="mt-5 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-            >
-              Close
-            </button>
+            <div className="flex justify-center sm:justify-end mt-5">
+              <button
+                onClick={() => setSelectedRecord(null)}
+                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -536,6 +635,40 @@ const AdminDashboard = () => {
             </div>
           )}
         </div>
+        {/* Modal for displaying search results */}
+        {searchResults.length > 0 && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+              <h3 className="text-lg font-medium leading-6 text-gray-900 mb-2">
+                Search Results
+              </h3>
+              {searchResults.map((record) => (
+                <div key={record._id} className="mb-4 border-b pb-2">
+                  <p>
+                    <strong>Diagnosis:</strong> {record.diagnosis}
+                  </p>
+                  <p>
+                    <strong>Date:</strong>{" "}
+                    {new Date(record.date).toLocaleDateString()}
+                  </p>
+                  <p>
+                    <strong>Treatment:</strong> {record.treatment || "N/A"}
+                  </p>
+                  <p>
+                    <strong>Prescription:</strong>{" "}
+                    {record.prescription || "N/A"}
+                  </p>
+                </div>
+              ))}
+              <button
+                onClick={() => setSearchResults([])}
+                className="mt-4 bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

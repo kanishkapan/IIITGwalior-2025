@@ -196,36 +196,67 @@ def disease_prediction():
 
 
 # ✅ AI-Powered Medical Record Retrieval (No IDs)
+from bson import ObjectId
+from flask import request, jsonify, g
+import traceback
+
 @app.route("/ask_question", methods=["POST"])
 @auth_middleware(["student"])
 def ask_question():
     try:
         data = request.json
-        user_question = data.get("question")
-        
-        # Get student ID from the JWT token and convert to ObjectId
-        student_id = g.user.get('_id')
-        print(f"Using student ID from token: {student_id}")
+        print("Received JSON:", data)
 
+        user_question = data.get("question")
         if not user_question:
             return jsonify({"error": "Question is required"}), 400
+
+        # Get student ID from JWT and validate
+        student_id = g.user.get('_id')
+        print(f"Using student ID from token: {student_id}")
+        if not student_id:
+            return jsonify({"error": "Invalid user ID in token"}), 400
 
         # Fetch student name
         student = users_collection.find_one({"_id": ObjectId(student_id)}, {"name": 1})
         student_name = student["name"] if student else "Unknown Patient"
+        print(f"Student name: {student_name}")
 
-        # Fetch medical records - convert string ID to ObjectId
+        # Fetch medical records
         records = list(collection.find({"studentId": ObjectId(student_id)}))
+        print(f"Medical records found: {len(records)}")
+
         if not records:
             return jsonify({"error": "No medical history found for this patient"}), 404
 
         enriched_records = []
         for record in records:
-            doctor = users_collection.find_one({"_id": ObjectId(record["doctorId"])}, {"name": 1})
-            doctor_name = doctor["name"] if doctor else "Unknown Doctor"
+            doctor_name = "Unknown Doctor"
+            doctor_id = record.get("doctorId")
+
+            if doctor_id:
+                try:
+                    doctor = users_collection.find_one({"_id": ObjectId(doctor_id)}, {"name": 1})
+                    if doctor and doctor.get("name"):
+                        doctor_name = doctor["name"]
+                    else:
+                        # Fallback: check for externalDoctorName
+                        external_name = record.get("externalDoctorName")
+                        if external_name:
+                            doctor_name = external_name
+                except Exception as doc_error:
+                    print(f"Error fetching doctor by ID {doctor_id}: {doc_error}")
+                    external_name = record.get("externalDoctorName")
+                    if external_name:
+                        doctor_name = external_name
+            else:
+                # No doctorId, check for external name
+                external_name = record.get("externalDoctorName")
+                if external_name:
+                    doctor_name = external_name
 
             enriched_records.append({
-                "Date": record.get("createdAt", "Unknown"),
+                "Date": str(record.get("createdAt", "Unknown")),
                 "Diagnosis": record.get("diagnosis", "Not specified"),
                 "Doctor": doctor_name,
                 "Treatment": record.get("treatment", "Not specified"),
@@ -246,15 +277,24 @@ def ask_question():
         "{user_question}"
         """
 
-        # Generate response using Gemini AI
-        response = model.generate_content(gemini_prompt)
-        final_answer = response.text if response and response.text else "I couldn't generate an answer."
+        print("Prompt for Gemini:", gemini_prompt)
+
+        # --- GENERATE RESPONSE USING GEMINI ---
+        try:
+            response = model.generate_content(gemini_prompt)
+            final_answer = response.text if response and hasattr(response, 'text') else "I couldn't generate an answer."
+        except Exception as ai_error:
+            print("Gemini API error:", ai_error)
+            traceback.print_exc()
+            return jsonify({"error": "Failed to generate response using Gemini"}), 500
 
         return jsonify({"status": "success", "answer": final_answer})
 
     except Exception as e:
+        print("Error in /ask_question:", e)
+        traceback.print_exc()
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
-    
+
 @app.route("/leaverelated", methods=["POST"])
 @auth_middleware(["student"])
 def leave_related_question():
