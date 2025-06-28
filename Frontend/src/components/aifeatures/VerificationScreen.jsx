@@ -2,11 +2,11 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import React from "react";
 const patients = [
-  { id: 1, name: "John Doe", license: "MED12345", hash: "0xabc123xyz456hash789" },
-  { id: 2, name: "Jane Smith", license: "MED67890", hash: "0xdef456ghi789hash012" },
-  { id: 3, name: "Alice Brown", license: "MED11223", hash: "0xjkl789mno012hash345" },
+  { id: 1, name: "Rahul Verma", license: "MED12345", hash: "0xafvf498dty455ign230" },
+  { id: 2, name: "John Doe", license: "MED67890", hash: "852eb511f9a5c72e13c5" },
+  { id: 3, name: "Alice Brown", license: "MED11223", hash: "ac7f747bfe9e9a06bac7bf60238f24" },
   { id: 4, name: "Kanishka Pandey ", license: "MED99999", hash: "Not Found" },
-  { id: 5, name: "Urvashi Maramt ", license: "MED88888", hash: "Not Found" },
+  { id: 5, name: "Urvashi Marmat ", license: "MED88888", hash: "Not Found" },
 ];
 
 export default function VerificationScreen() {

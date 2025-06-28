@@ -251,7 +251,7 @@ const Dashboard = () => {
 
         {/* New AI Feature Section */}
         <div className="mt-8">
-          <h3 className="text-lg font-bold text-green-600 mb-4">AI Features</h3>
+          <h3 className="text-xl font-bold text-green-600 mb-4">AI Features</h3>
           <nav className="space-y-2">
             {["Leave Concern", "Health Record Concern", "AI Diagnosis"].map(
               (item) => (
