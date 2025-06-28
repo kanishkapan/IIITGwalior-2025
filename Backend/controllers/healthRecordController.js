@@ -26,17 +26,16 @@ export const createHealthRecord = async (req, res) => {
 
     let attachments = [];
     if (req.files && req.files.length > 0) {
-      // Upload files to Cloudinary
+      console.log("Files received:", req.files);
       const filePaths = req.files.map(file => file.path);
       const uploadResults = await uploadMultipleDocuments(filePaths);
-      
-      // Format the document array for storage
+      console.log("Upload results:", uploadResults);
+    
       attachments = uploadResults.map(result => ({
         url: result.secure_url,
         publicId: result.public_id,
         format: result.format
       }));
-      
       // Clean up temp files after upload
       req.files.forEach(file => {
         fs.unlink(file.path, (err) => {
@@ -56,6 +55,7 @@ export const createHealthRecord = async (req, res) => {
       externalHospitalName,
       attachments, // Handle file uploads
     });
+    console.log("Attachments before saving:", attachments);
 
     await newRecord.save();
     res.status(201).json({ message: "Health record created successfully", newRecord });
@@ -122,5 +122,41 @@ export const deleteHealthRecord = async (req, res) => {
     res.status(200).json({ message: "Health record deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: "Error deleting health record", error });
+  }
+};
+
+
+
+
+export const getHealthRecordsadmin = async (req, res) => {
+  try {
+    // Fetch all health records and populate student and doctor details
+    const healthRecords = await HealthRecord.find()
+      .populate("studentId", "name gender email phone dateOfBirth") // Populate student details
+      .populate("doctorId", "name specialization email phone"); // Populate doctor details
+
+    // Format the records for the frontend
+    const formattedRecords = healthRecords.map((record) => ({
+      id: record._id,
+      studentName: record.studentId?.name || "Unknown",
+      studentId: record.studentId?._id || null,
+      gender: record.studentId?.gender || "Unknown",
+      diagnosis: record.diagnosis,
+      date: record.date.toISOString().split("T")[0],
+      prescription: record.prescription || "No prescription provided",
+      attachments: record.attachments.map(att => ({
+        url: att.url || null,
+        format: att.url ? att.url.split('.').pop().toLowerCase() : null,
+      })),
+      doctorName: record.isManualUpload
+        ? record.externalDoctorName
+        : record.doctorId?.name || "Unknown",
+      hospitalName: record.isManualUpload ? record.externalHospitalName : null,
+    }));
+    console.log("Formatted records:", formattedRecords);
+    res.status(200).json(formattedRecords);
+  } catch (error) {
+    console.error("Error fetching health records:", error);
+    res.status(500).json({ message: error.message });
   }
 };

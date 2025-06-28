@@ -64,6 +64,11 @@ const HealthRecordForm = () => {
       setMessage("Doctor ID is required.");
       return;
     }
+    if (attachments.length > 0) {
+      for (let i = 0; i < attachments.length; i++) {
+        submissionData.append('attachments', attachments[i]);
+      }
+    }
     console.log("Submission Data:", submissionData);
 
     try {

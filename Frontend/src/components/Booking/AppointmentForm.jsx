@@ -98,40 +98,76 @@ const AppointmentForm = () => {
   const today = formatDate(new Date());
 
   return (
-    <div className="flex flex-col md:flex-row items-center justify-center min-h-screen bg-gray-100 p-4 md:p-8 lg:p-12">
-      <div className="bg-white rounded-lg shadow-lg p-6 md:p-10 w-full max-w-lg md:max-w-2xl lg:w-1/2">
-        <h2 className="text-2xl md:text-3xl font-bold text-green-600 text-center">Book Your Appointment</h2>
-        <p className="text-gray-600 text-center mt-2">Schedule your appointment easily with our doctors.</p>
-        {success && <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-3 my-4">{success}</div>}
-        {error && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 my-4">{error}</div>}
-        <form className="space-y-6" onSubmit={handleSubmit}>
+    <div className="flex flex-col md:flex-row items-center justify-center min-h-screen bg-gray-100 p-4 sm:p-6 md:p-8 lg:p-12">
+      <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 md:p-8 lg:p-10 w-full max-w-lg md:max-w-xl lg:w-1/2 mb-8 md:mb-0">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-green-600 text-center">Book Your Appointment</h2>
+        <p className="text-gray-600 text-center mt-2 text-sm sm:text-base">Schedule your appointment easily with our doctors.</p>
+        
+        {success && <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-2 sm:p-3 my-3 sm:my-4 text-sm sm:text-base">{success}</div>}
+        {error && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-2 sm:p-3 my-3 sm:my-4 text-sm sm:text-base">{error}</div>}
+        
+        <form className="space-y-4 sm:space-y-6" onSubmit={handleSubmit}>
           <div>
-            <label className="block text-gray-700">Select Doctor</label>
-            <select name="doctorId" className="w-full border rounded-md p-2" onChange={handleChange} value={formData.doctorId} required>
+            <label className="block text-gray-700 text-sm sm:text-base mb-1">Select Doctor</label>
+            <select 
+              name="doctorId" 
+              className="w-full border rounded-md p-2 text-sm sm:text-base" 
+              onChange={handleChange} 
+              value={formData.doctorId} 
+              required
+            >
               <option value="">Select Doctor</option>
               {doctors.map((doctor) => (
                 <option key={doctor._id} value={doctor._id}>{doctor.name} - {doctor.specialization}</option>
               ))}
             </select>
           </div>
+          
           <div>
-            <label className="block text-gray-700">Select Date</label>
-            <input type="date" name="date" min={today} className="w-full border rounded-md p-2" onChange={handleChange} value={formData.date} required />
+            <label className="block text-gray-700 text-sm sm:text-base mb-1">Select Date</label>
+            <input 
+              type="date" 
+              name="date" 
+              min={today} 
+              className="w-full border rounded-md p-2 text-sm sm:text-base" 
+              onChange={handleChange} 
+              value={formData.date} 
+              required 
+            />
           </div>
+          
           <div>
-            <label className="block text-gray-700">Select Time Slot</label>
-            <select name="slotId" className="w-full border rounded-md p-2" onChange={handleChange} value={formData.slotId} required>
+            <label className="block text-gray-700 text-sm sm:text-base mb-1">Select Time Slot</label>
+            <select 
+              name="slotId" 
+              className="w-full border rounded-md p-2 text-sm sm:text-base" 
+              onChange={handleChange} 
+              value={formData.slotId} 
+              required
+            >
               <option value="">Select Time Slot</option>
               {availableSlots.map((slot) => (
                 <option key={slot.id} value={slot.id}>{slot.time}</option>
               ))}
             </select>
           </div>
-          <button type="submit" className="w-full bg-green-600 text-white py-2 rounded-md font-semibold hover:bg-green-700 disabled:bg-gray-400" disabled={!formData.slotId}>{loading ? "Processing..." : "Book Appointment"}</button>
+          
+          <button 
+            type="submit" 
+            className="w-full bg-green-600 text-white py-2 rounded-md font-semibold hover:bg-green-700 disabled:bg-gray-400 text-sm sm:text-base" 
+            disabled={!formData.slotId}
+          >
+            {loading ? "Processing..." : "Book Appointment"}
+          </button>
         </form>
       </div>
-      <div className="hidden lg:flex w-1/2 justify-center items-center">
-        <img src="../src/assets/patientform.png" alt="Doctor Consultation" className="w-full max-w-md rounded-lg" />
+      
+      <div className="hidden md:block md:w-1/2 lg:flex lg:w-1/2 justify-center items-center">
+        <img 
+          src="../src/assets/patientform.png" 
+          alt="Doctor Consultation" 
+          className="w-full max-w-sm lg:max-w-md rounded-lg" 
+        />
       </div>
     </div>
   );

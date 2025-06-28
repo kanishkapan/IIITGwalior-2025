@@ -229,24 +229,29 @@ const Dashboard = () => {
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
       <div className="w-64 bg-white p-4 border-r">
-        <h2 className="text-xl font-bold text-blue-600 mb-6">MediSense</h2>
+        <h2 className="text-xl font-bold text-green-600 mb-6">
+          Student Dashboard
+        </h2>
         <nav className="space-y-2">
-          {["Dashboard", "Appointments", "Doctors", "Certificates"].map(
-            (item) => (
-              <Link
-                key={item}
-                to={`/${item.toLowerCase()}`}
-                className="flex items-center px-4 py-2 text-gray-600 hover:bg-gray-100 rounded cursor-pointer"
-              >
-                <span className="ml-2 text-lg font-medium">{item}</span>
-              </Link>
-            )
-          )}
+          {[
+            { name: "Dashboard", path: "/dashboard" },
+            { name: "Appointments", path: "/appointment" },
+            { name: "Health Records", path: "/recordform" },
+            { name: "Certificate Generator", path: "/certificate" }, // Custom path
+          ].map((item) => (
+            <Link
+              key={item.name}
+              to={item.path}
+              className="flex items-center px-4 py-2 text-gray-600 hover:bg-gray-100 rounded cursor-pointer"
+            >
+              <span className="ml-2 text-lg font-medium">{item.name}</span>
+            </Link>
+          ))}
         </nav>
 
         {/* New AI Feature Section */}
         <div className="mt-8">
-          <h3 className="text-lg font-bold text-blue-600 mb-4">AI Feature</h3>
+          <h3 className="text-lg font-bold text-green-600 mb-4">AI Features</h3>
           <nav className="space-y-2">
             {["Leave Concern", "Health Record Concern", "AI Diagnosis"].map(
               (item) => (

@@ -52,6 +52,8 @@ const DocDash = () => {
     { month: 'May', checkups: 25, emergencies: 6 },
     { month: 'Jun', checkups: 32, emergencies: 9 }
   ];
+  const SelectTimeSlotButton = () => {
+    const router = useRouter();
 
   // State for active tab
   const [activeTab, setActiveTab] = useState('certificate');
@@ -182,14 +184,6 @@ const DocDash = () => {
               <span className="text-lg font-medium">{item.name}</span>
             </Link>
           ))}
-            <div className="flex items-center justify-center p-6 bg-white rounded-2xl shadow-md border border-green-500">
-      <button
-        onClick={() => navigate("/slots")}
-        className="px-6 py-3 text-lg font-semibold text-white bg-green-500 rounded-lg transition-all duration-300 ease-in-out hover:bg-green-600 hover:shadow-lg"
-      >
-        Select Time Slot
-      </button>
-    </div>
         </nav>
 
         {/* AI Bot Section */}
@@ -606,5 +600,6 @@ const DocDash = () => {
     </div>
   );
 };
+}
 
 export default DocDash;

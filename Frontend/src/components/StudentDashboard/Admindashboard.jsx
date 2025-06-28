@@ -1,25 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie } from 'recharts';
 import { Bell, Settings, Search, Eye, Calendar, FileText, User, UserPlus, Users, Activity, AlertCircle } from 'lucide-react';
-
+import {api} from '../../axios.config';
 const AdminDashboard = () => {
   // Sample data for student leave applications
-  const [leaveApplications] = useState([
-    { id: 'LA001', studentName: 'John Smith', studentId: 'STU10045', gender: 'Male', fromDate: '2025-03-10', toDate: '2025-03-15', reason: 'Medical', status: 'Pending' },
-    { id: 'LA002', studentName: 'Emma Johnson', studentId: 'STU10078', gender: 'Female', fromDate: '2025-03-12', toDate: '2025-03-14', reason: 'Family Emergency', status: 'Approved' },
-    { id: 'LA003', studentName: 'Michael Wang', studentId: 'STU10023', gender: 'Male', fromDate: '2025-03-15', toDate: '2025-03-18', reason: 'Medical', status: 'Pending' },
-    { id: 'LA004', studentName: 'Sarah Miller', studentId: 'STU10091', gender: 'Female', fromDate: '2025-03-18', toDate: '2025-03-20', reason: 'Personal', status: 'Rejected' }
-  ]);
+  const [leaveApplications, setLeaveApplications] = useState([]);
+  
+  const [selectedRecord, setSelectedRecord] = useState(null);
 
   // Sample data for health records
-  const [healthRecords] = useState([
-    { id: 'HR001', studentName: 'John Smith', studentId: 'STU10045', gender: 'Male', diagnosis: 'Seasonal Flu', date: '2025-03-10', prescription: 'Paracetamol 500mg, twice daily', attachment: 'flu_report.pdf' },
-    { id: 'HR002', studentName: 'Emma Johnson', studentId: 'STU10078', gender: 'Female', diagnosis: 'Migraine', date: '2025-03-05', prescription: 'Sumatriptan 50mg, as needed', attachment: 'migraine_report.pdf' },
-    { id: 'HR003', studentName: 'Michael Wang', studentId: 'STU10023', gender: 'Male', diagnosis: 'Sprained Ankle', date: '2025-03-08', prescription: 'Rest, Ice, Compression, Elevation; Ibuprofen 400mg', attachment: 'xray_ankle.pdf' },
-    { id: 'HR004', studentName: 'Sarah Miller', studentId: 'STU10091', gender: 'Female', diagnosis: 'Allergic Rhinitis', date: '2025-03-11', prescription: 'Cetirizine 10mg, once daily', attachment: 'allergy_test.pdf' }
-  ]);
+  const [healthRecords, setHealthRecords] = useState([]);
 
+  useEffect(() => {
+    const fetchHealthRecords = async () => {
+      try {
+        const response = await api.get("/medical-leaves/healthrecord"); // Replace with your API endpoint
+        console.log("API Response:", response.data);
+        
+        const formattedData = response.data.map(record => ({
+          ...record,
+          docUrls: record.attachments
+            ? record.attachments.map(att => ({
+                url: att.url || "#", // Fallback URL
+                format: att.url ? att.url.split('.').pop().toLowerCase() : "unknown", // Fallback format
+              }))
+            : [],
+        }));
+  
+        setHealthRecords(formattedData);
+      } catch (error) {
+        console.error("Error fetching health records:", error);
+      }
+    };
+  
+    fetchHealthRecords();
+  }, []);
+  
   // Sample data for doctors
   const [doctors] = useState([
     { id: 'DOC001', name: 'Dr. Emily Chen', specialization: 'General Medicine', contact: '+1-555-0123', availability: 'Mon, Wed, Fri' },
@@ -48,6 +65,52 @@ const AdminDashboard = () => {
 
   // State for active tab
   const [activeTab, setActiveTab] = useState('leave');
+
+  useEffect(() => {
+    const fetchLeaveApplications = async () => {
+      try {
+        const response = await api.get("/medical-leaves");
+        setLeaveApplications(response.data);
+      } catch (error) {
+        console.error("Error fetching leave applications:", error);
+      }
+    };
+    fetchLeaveApplications();
+  }, []);
+
+  const updateLeaveStatus = async (id, status) => {
+    try {
+      await api.patch(`/medical-leaves/${id}/status`, { status });
+      // Refresh the leave applications after updating
+      const response = await api.get("/medical-leaves");
+      setLeaveApplications(response.data);
+    } catch (error) {
+      console.error("Error updating leave status:", error);
+    }
+  };
+  const [selectedLeave, setSelectedLeave] = useState(null);
+
+  const viewLeaveDetails = async (id) => {
+    try {
+      const response = await api.get(`/medical-leaves/${id}/details`);
+      setSelectedLeave({
+        ...response.data,
+        docUrls: response.data.supportingDocuments 
+          ? response.data.supportingDocuments.map(att => ({
+              url: att.url,
+              format: att.url.split('.').pop().toLowerCase()
+            }))
+          : []
+      });
+    } catch (error) {
+      console.error("Error fetching leave details:", error);
+      // Display an error message to the user
+      alert("An error occurred while fetching leave details. Please try again later.");
+    }
+  };
+  
+    
+  
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -171,96 +234,213 @@ const AdminDashboard = () => {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student ID</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Health issue</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {leaveApplications.map((app) => (
-                      <tr key={app.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{app.id}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.studentName}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.studentId}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.gender}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.fromDate} to {app.toDate}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.reason}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            app.status === 'Approved' ? 'bg-green-100 text-green-800' : 
-                            app.status === 'Rejected' ? 'bg-red-100 text-red-800' : 
-                            'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {app.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <button className="text-blue-600 hover:text-blue-900 mr-3">View</button>
-                          {app.status === 'Pending' && (
-                            <>
-                              <button className="text-green-600 hover:text-green-900 mr-3">Approve</button>
-                              <button className="text-red-600 hover:text-red-900">Reject</button>
-                            </>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
+  {leaveApplications.map((app,index) => (
+    <tr key={app.id} className="hover:bg-gray-50">
+      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index+1}</td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.studentName}</td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.studentId}</td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.gender}</td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.duration}</td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.diagnosis}</td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+          app.status === 'approved' ? 'bg-green-100 text-green-800' : 
+          app.status === 'rejected' ? 'bg-red-100 text-red-800' : 
+          'bg-yellow-100 text-yellow-800'
+        }`}>
+          {app.status}
+        </span>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+        <button onClick={() => viewLeaveDetails(app.id)} className="text-blue-600 hover:text-blue-900 mr-3">View</button>
+        {app.status === 'pending' && (
+          <>
+            <button onClick={() => updateLeaveStatus(app.id, 'approved')} className="text-green-600 hover:text-green-900 mr-3">Approve</button>
+            <button onClick={() => updateLeaveStatus(app.id, 'rejected')} className="text-red-600 hover:text-red-900">Reject</button>
+          </>
+        )}
+      </td>
+    </tr>
+  ))}
+  </tbody>
+
                 </table>
+                {selectedLeave && (
+  <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+    <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+      <h3 className="text-lg font-medium leading-6 text-gray-900 mb-2">Leave Details</h3>
+      <p><strong>Student:</strong> {selectedLeave.studentName}</p>
+      <p><strong>StudentId:</strong> {selectedLeave.studentId}</p>
+      <p><strong>gender:</strong> {selectedLeave.gender}</p>
+      <p><strong>Duration:</strong> {selectedLeave.duration}</p>
+      <p><strong>Reason:</strong> {selectedLeave.reason}</p>
+      <p><strong>Status:</strong> {selectedLeave.status}</p>
+      <p><strong>Email:</strong> {selectedLeave.email}</p>
+      <p><strong>Phone:</strong> {selectedLeave.phone}</p>
+      <p><strong>DOB:</strong> {selectedLeave.dateOfBirth}</p>
+      <p><strong>health issue:</strong> {selectedLeave.diagnosis}</p>
+      <p><strong>Doctor:</strong> {selectedLeave.doctorName}</p>
+      <p><strong>treatment:</strong> {selectedLeave.treatment}</p>
+      <p><strong>prescription:</strong> {selectedLeave.prescription}</p>
+      {selectedLeave.docUrls && selectedLeave.docUrls.length > 0 && (
+  <div className="mt-4">
+    <h4 className="font-semibold">Supporting documents:</h4>
+    {selectedLeave.docUrls.map((attachment, index) => (
+      <div key={index} className="mt-2">
+        {attachment.format === 'pdf' ? (
+          <iframe
+            src={`${attachment.url}#view=FitH`}
+            className="w-full h-64 border border-gray-300"
+            title={`PDF Attachment ${index + 1}`}
+          ></iframe>
+        ) : (
+          <img
+            src={attachment.url}
+            alt={`Image Attachment ${index + 1}`}
+            className="max-w-full h-auto border border-gray-300"
+          />
+        )}
+        <a 
+          href={attachment.url} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="text-blue-600 hover:underline block mt-2"
+        >
+          Download {attachment.format.toUpperCase()}
+        </a>
+      </div>
+    ))}
+  </div>
+)}
+
+
+
+  
+      
+      <button
+        onClick={() => setSelectedLeave(null)}
+        className="mt-3 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+      >
+        Close
+      </button>
+    </div>
+  </div>
+)}
+
               </div>
             </div>
           )}
 
           {/* Health Records Tab */}
           {activeTab === 'health' && (
-            <div>
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold">Student Health Records</h2>
-                <div className="flex space-x-2">
-                  <input type="text" placeholder="Search by ID or Name" className="border rounded-lg px-3 py-2" />
-                  <button className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center">
-                    <FileText className="w-4 h-4 mr-2" /> Add Record
+  <div>
+    <div className="flex justify-between items-center mb-6">
+      <h2 className="text-xl font-semibold">Student Health Records</h2>
+      <div className="flex space-x-2">
+        <input type="text" placeholder="Search by ID or Name" className="border rounded-lg px-3 py-2" />
+        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center">
+          <FileText className="w-4 h-4 mr-2" /> Add Record
+        </button>
+      </div>
+    </div>
+    <div className="overflow-x-auto">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Record ID</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Name</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student ID</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Diagnosis</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prescription</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {healthRecords.map((record, index) => (
+            <tr key={record.id} className="hover:bg-gray-50">
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.studentName}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.studentId}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.gender}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.diagnosis}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.date}</td>
+              <td className="px-6 py-4 whitespace-nowrap">{record.prescription}</td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                {record.docUrls && record.docUrls.length > 0 ? (
+                  <button
+                    onClick={() => setSelectedRecord(record)}
+                    className="text-blue-600 hover:text-blue-900"
+                  >
+                    View Attachments
                   </button>
-                </div>
+                ) : (
+                  <span className="text-gray-500">No Attachments</span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      
+      {selectedRecord && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+          <div className="relative top-20 mx-auto p-5 border w-[90%] md:w-[50%] shadow-lg rounded-md bg-white">
+            <h3 className="text-lg font-medium leading-none mb-4">
+              Attachments for {selectedRecord.studentName}
+            </h3>
+
+            {/* Render Attachments */}
+            {selectedRecord.docUrls.map((attachment, index) => (
+              <div key={index} className="mt-4">
+                {attachment.format === 'pdf' ? (
+                  // Render PDF
+                  <iframe
+                    src={`${attachment.url}#view=FitH`}
+                    title={`Attachment ${index + 1}`}
+                    frameBorder={1}
+                    width="100%"
+                    height={300}
+                  ></iframe>
+                ) : (
+                  // Render Image
+                  <img
+                    src={attachment.url}
+                    alt={`Attachment ${index + 1}`}
+                    className="max-w-full h-auto border border-gray-300"
+                  />
+                )}
+                <a
+                  href={attachment.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline block mt-2"
+                >
+                  Download {attachment.format.toUpperCase()}
+                </a>
               </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Record ID</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Name</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student ID</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Diagnosis</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prescription</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Attachment</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {healthRecords.map((record) => (
-                      <tr key={record.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{record.id}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.studentName}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.studentId}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.gender}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.diagnosis}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.date}</td>
-                        <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">{record.prescription}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 underline cursor-pointer">{record.attachment}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <button className="text-blue-600 hover:text-blue-900 flex items-center">
-                            <Eye className="w-4 h-4 mr-1" /> View Details
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+            ))}
+
+            {/* Close Button */}
+            <button
+              onClick={() => setSelectedRecord(null)}
+              className="mt-5 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
+)}
 
           {/* Doctors Tab */}
           {activeTab === 'doctors' && (

@@ -21,7 +21,7 @@ const HealthRecordSchema = new mongoose.Schema(
       url: String,
       publicId: String,
       format: String,
-      resourceType: String
+      
     }], // File URLs
   },
   { timestamps: true }
