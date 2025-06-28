@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie } from 'recharts';
-import { Bell, Settings, Search, Eye, Calendar, FileText, User, Check, X, Video, Clock, Bot, MessageSquare, Activity, AlertCircle, FileCheck,  } from 'lucide-react';
+import { Bell, Settings, Search, Eye, Calendar, FileText, User, Check, X, Video, Clock, Bot, MessageSquare, Activity, AlertCircle, FileCheck } from 'lucide-react';
+import { api } from '../../axios.config.js';
 
 const DocDash = () => {
   // Sample data for student certificates
@@ -12,13 +13,12 @@ const DocDash = () => {
     { id: 'CERT004', studentName: 'Sarah Miller', studentId: 'STU10091', gender: 'Female', certificateType: 'Physical Examination', issueDate: '2025-02-28', expiryDate: '2026-02-28', documentLink: 'physical_exam.pdf', status: 'Rejected' }
   ]);
 
-  // Sample data for appointments
-  const [appointments] = useState([
-    { id: 'APP001', patientName: 'John Smith', studentId: 'STU10045', gender: 'Male', appointmentDate: '2025-03-13', timeFrom: '10:00 AM', timeTo: '10:30 AM', reason: 'Regular Checkup', status: 'Pending' },
-    { id: 'APP002', patientName: 'Emma Johnson', studentId: 'STU10078', gender: 'Female', appointmentDate: '2025-03-13', timeFrom: '11:00 AM', timeTo: '11:30 AM', reason: 'Migraine Follow-up', status: 'Approved' },
-    { id: 'APP003', patientName: 'Michael Wang', studentId: 'STU10023', gender: 'Male', appointmentDate: '2025-03-14', timeFrom: '09:00 AM', timeTo: '09:30 AM', reason: 'Ankle Check', status: 'Pending' },
-    { id: 'APP004', patientName: 'Sarah Miller', studentId: 'STU10091', gender: 'Female', appointmentDate: '2025-03-14', timeFrom: '02:00 PM', timeTo: '02:30 PM', reason: 'Allergy Consultation', status: 'Delayed' }
-  ]);
+  // Replace static appointment sample data with dynamic state
+  const [appointments, setAppointments] = useState([]);
+  const [loadingAppointments, setLoadingAppointments] = useState(true);
+  const [appointmentsError, setAppointmentsError] = useState(null);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
 
   // Sample data for prescriptions
   const [prescriptions] = useState([
@@ -28,12 +28,10 @@ const DocDash = () => {
     { id: 'PRE004', studentName: 'Sarah Miller', studentId: 'STU10091', gender: 'Female', medication: 'Cetirizine 10mg', dosage: 'Once daily', issuedDate: '2025-03-11', notes: 'Take in the evening', status: 'Rejected' }
   ]);
 
-  // Sample data for video call appointments
-  const [videoAppointments] = useState([
-    { id: 'VID001', patientName: 'John Smith', studentId: 'STU10045', appointmentDate: '2025-03-13', timeFrom: '03:00 PM', timeTo: '03:30 PM', status: 'Scheduled' },
-    { id: 'VID002', patientName: 'Emma Johnson', studentId: 'STU10078', appointmentDate: '2025-03-13', timeFrom: '04:00 PM', timeTo: '04:30 PM', status: 'In Progress' },
-    { id: 'VID003', patientName: 'Michael Wang', studentId: 'STU10023', appointmentDate: '2025-03-14', timeFrom: '01:00 PM', timeTo: '01:30 PM', status: 'Scheduled' }
-  ]);
+  // Remove static sample data for video call appointments and use dynamic state instead
+  const [videoAppointments, setVideoAppointments] = useState([]);
+  const [loadingVideo, setLoadingVideo] = useState(true);
+  const [videoError, setVideoError] = useState(null);
 
   // Statistics for dashboard charts
   const healthIssuesData = [
@@ -55,6 +53,109 @@ const DocDash = () => {
 
   // State for active tab
   const [activeTab, setActiveTab] = useState('certificate');
+
+  // Helper function to format date in DD/month name/yyyy format
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = date.toLocaleString('default', { month: 'long' });
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  // Fetch appointments whenever the status or date filter changes
+  useEffect(() => {
+    fetchAppointments();
+  }, [statusFilter, dateFilter]);
+
+  const fetchAppointments = async () => {
+    try {
+      setLoadingAppointments(true);
+      let queryParams = {};
+      if (statusFilter && statusFilter !== 'All Status') {
+        queryParams.status = statusFilter;
+      }
+      if (dateFilter) {
+        queryParams.date = dateFilter;
+      }
+      const response = await api.get('/doctor/appointment', { params: queryParams });
+      const formattedAppointments = response.data.map(app => ({
+        id: app._id,
+        patientName: app.studentId?.name || 'Unknown Patient',
+        studentId: app.studentId?._id || 'N/A',
+        studentEmail: app.studentId?.email || 'N/A',
+        appointmentDate: new Date(app.slotDateTime).toLocaleDateString(),
+        timeFrom: new Date(app.slotDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timeTo: calculateEndTime(app.slotDateTime, app.duration || 30),
+        reason: app.reason || 'General Checkup',
+        status: app.status.charAt(0).toUpperCase() + app.status.slice(1),
+        rawData: app
+      }));
+      setAppointments(formattedAppointments);
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+      setAppointmentsError('Failed to load appointments. Please try again later.');
+    } finally {
+      setLoadingAppointments(false);
+    }
+  };
+
+  // Helper to calculate end time based on start time and duration
+  const calculateEndTime = (startDateTime, durationMinutes) => {
+    const endTime = new Date(new Date(startDateTime).getTime() + durationMinutes * 60000);
+    return endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  // Update appointment status and update the local state
+  const updateAppointmentStatus = async (appointmentId, newStatus) => {
+    try {
+      await api.patch(`/doctor/${appointmentId}/appointment-status`, { status: newStatus.toLowerCase() });
+      setAppointments(prevAppointments =>
+        prevAppointments.map(app =>
+          app.id === appointmentId
+            ? { ...app, status: newStatus.charAt(0).toUpperCase() + newStatus.slice(1) }
+            : app
+        )
+      );
+    } catch (error) {
+      console.error(`Error updating appointment to ${newStatus}:`, error);
+      alert('Failed to update appointment status. Please try again.');
+    }
+  };
+
+  // Function to view appointment details (for example, opening a modal)
+  const viewAppointmentDetails = (appointment) => {
+    console.log('View appointment details:', appointment);
+  };
+
+  // New: Fetch video appointments from the API when the Video tab is active
+  useEffect(() => {
+    if (activeTab === 'video') {
+      fetchVideoAppointments();
+    }
+  }, [activeTab]);
+
+  const fetchVideoAppointments = async () => {
+    try {
+      setLoadingVideo(true);
+      const response = await api.get('/doctor/appointment', { params: { status: 'confirmed' } });
+      const formattedVideoAppointments = response.data.map(app => ({
+        id: app._id,
+        patientName: app.studentId?.name || 'Unknown Patient',
+        studentId: app.studentId?._id || 'N/A',
+        appointmentDate: formatDate(app.slotDateTime),
+        time: new Date(app.slotDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        status: app.status.charAt(0).toUpperCase() + app.status.slice(1),
+        rawData: app
+      }));
+      setVideoAppointments(formattedVideoAppointments);
+    } catch (error) {
+      console.error('Error fetching video appointments:', error);
+      setVideoError('Failed to load video appointments. Please try again later.');
+    } finally {
+      setLoadingVideo(false);
+    }
+  };
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -130,7 +231,7 @@ const DocDash = () => {
         {/* Statistics Overview */}
         <div className="grid grid-cols-4 gap-6 mb-8">
           {[
-            { title: 'Today\'s Appointments', value: '8', color: 'bg-blue-600', icon: Calendar },
+            { title: "Today's Appointments", value: '8', color: 'bg-blue-600', icon: Calendar },
             { title: 'Pending Certificates', value: '14', color: 'bg-yellow-500', icon: FileCheck },
             { title: 'Active Cases', value: '12', color: 'bg-green-600', icon: Activity },
             { title: 'Video Consultations', value: '5', color: 'bg-purple-600', icon: Video }
@@ -264,80 +365,118 @@ const DocDash = () => {
           {activeTab === 'appointment' && (
             <div>
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold">Appointment Requests</h2>
+                <h2 className="text-xl font-semibold text-green-800">Appointment Requests</h2>
                 <div className="flex space-x-2">
-                  <select className="border rounded-lg px-3 py-2">
-                    <option>All Status</option>
-                    <option>Pending</option>
-                    <option>Approved</option>
-                    <option>Rejected</option>
-                    <option>Delayed</option>
+                  <select 
+                    className="border border-green-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                  >
+                    <option value="">All Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="confirmed">Approved</option>
+                    <option value="cancelled">Rejected</option>
+                    <option value="delayed">Delayed</option>
                   </select>
-                  <input type="date" className="border rounded-lg px-3 py-2" />
+                  <input 
+                    type="date" 
+                    className="border border-green-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value)}
+                  />
                 </div>
               </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient Name</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student ID</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">From</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">To</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {appointments.map((app) => (
-                      <tr key={app.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{app.id}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.patientName}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.studentId}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.appointmentDate}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.timeFrom}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.timeTo}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.reason}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            app.status === 'Approved' ? 'bg-green-100 text-green-800' : 
-                            app.status === 'Rejected' ? 'bg-red-100 text-red-800' : 
-                            app.status === 'Delayed' ? 'bg-orange-100 text-orange-800' :
-                            'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {app.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <div className="flex space-x-2">
-                            {app.status === 'Pending' && (
-                              <>
-                                <button className="flex items-center text-green-600 hover:text-green-900">
-                                  <Check className="w-4 h-4 mr-1" /> Approve
-                                </button>
-                                <button className="flex items-center text-red-600 hover:text-red-900">
-                                  <X className="w-4 h-4 mr-1" /> Reject
-                                </button>
-                                <button className="flex items-center text-orange-600 hover:text-orange-900">
-                                  <Clock className="w-4 h-4 mr-1" /> Delay
-                                </button>
-                              </>
-                            )}
-                            {app.status !== 'Pending' && (
-                              <button className="flex items-center text-blue-600 hover:text-blue-900">
-                                <Eye className="w-4 h-4 mr-1" /> View
-                              </button>
-                            )}
-                          </div>
-                        </td>
+              {loadingAppointments ? (
+                <div className="flex justify-center items-center py-10">
+                  <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-green-500"></div>
+                </div>
+              ) : appointmentsError ? (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+                  {appointmentsError}
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-green-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">ID</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">Patient Name</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">Student ID</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">Date</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">From</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">To</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">Reason</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {appointments.length === 0 ? (
+                        <tr>
+                          <td colSpan="9" className="px-6 py-4 text-center text-gray-500">
+                            No appointments found
+                          </td>
+                        </tr>
+                      ) : (
+                        appointments.map((app) => (
+                          <tr key={app.id} className="hover:bg-green-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{app.id.substring(0, 6)}...</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.patientName}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.studentId}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.appointmentDate}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.timeFrom}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.timeTo}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.reason}</td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                app.status === 'Confirmed' ? 'bg-green-100 text-green-800' : 
+                                app.status === 'Cancelled' ? 'bg-red-100 text-red-800' : 
+                                app.status === 'Delayed' ? 'bg-orange-100 text-orange-800' :
+                                'bg-yellow-100 text-yellow-800'
+                              }`}>
+                                {app.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                              <div className="flex space-x-2">
+                                {app.status === 'Pending' ? (
+                                  <>
+                                    <button 
+                                      className="flex items-center text-green-600 hover:text-green-900"
+                                      onClick={() => updateAppointmentStatus(app.id, 'confirmed')}
+                                    >
+                                      <Check className="w-4 h-4 mr-1" /> Approve
+                                    </button>
+                                    <button 
+                                      className="flex items-center text-red-600 hover:text-red-900"
+                                      onClick={() => updateAppointmentStatus(app.id, 'cancelled')}
+                                    >
+                                      <X className="w-4 h-4 mr-1" /> Reject
+                                    </button>
+                                    <button 
+                                      className="flex items-center text-orange-600 hover:text-orange-900"
+                                      onClick={() => updateAppointmentStatus(app.id, 'delayed')}
+                                    >
+                                      <Clock className="w-4 h-4 mr-1" /> Delay
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button 
+                                    className="flex items-center text-blue-600 hover:text-blue-900"
+                                    onClick={() => viewAppointmentDetails(app)}
+                                  >
+                                    <Eye className="w-4 h-4 mr-1" /> View
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 
@@ -417,47 +556,68 @@ const DocDash = () => {
 
           {/* Video Consultation Tab */}
           {activeTab === 'video' && (
-  <div>
-    <div className="flex justify-between items-center mb-6">
-      <h2 className="text-xl font-semibold">Video Consultations</h2>
-      <button className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center">
-        <Video className="w-4 h-4 mr-2" /> Schedule New Call
-      </button>
-    </div>
-    
-    <div className="mb-8">
-      <h3 className="text-lg font-medium mb-4">Today's Video Appointments</h3>
-      <div className="grid grid-cols-3 gap-4">
-        {videoAppointments.map(app => (
-          <div 
-            key={app.id} 
-            className={`p-4 rounded-lg border ${
-              app.status === 'completed' ? 'border-green-500 bg-green-100' :
-              app.status === 'pending' ? 'border-yellow-500 bg-yellow-100' :
-              'border-red-500 bg-red-100'
-            }`}
-          >
-            <h4 className="font-semibold">{app.patientName}</h4>
-            <p className="text-sm text-gray-600">{app.time}</p>
-            <p className={`text-sm font-medium ${
-              app.status === 'completed' ? 'text-green-700' :
-              app.status === 'pending' ? 'text-yellow-700' :
-              'text-red-700'
-            }`}>
-              {app.status}
-            </p>
-          </div>
-        ))}
+            <div>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold">Video Consultations</h2>
+                <button className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center">
+                  <Video className="w-4 h-4 mr-2" /> Schedule New Call
+                </button>
+              </div>
+              
+              <div className="mb-8">
+                <h3 className="text-lg font-medium mb-4">Today's Video Appointments</h3>
+                {loadingVideo ? (
+                  <div className="flex justify-center items-center py-10">
+                    <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-green-500"></div>
+                  </div>
+                ) : videoError ? (
+                  <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+                    {videoError}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-4">
+                    {videoAppointments.length === 0 ? (
+                      <div className="col-span-3 text-center text-gray-500">No video appointments found</div>
+                    ) : (
+                      videoAppointments.map(app => (
+                        <div 
+                          key={app.id} 
+                          className={`p-4 rounded-lg border ${
+                            app.status === 'Confirmed' ? 'border-green-500 bg-green-100' :
+                            app.status === 'Pending' ? 'border-yellow-500 bg-yellow-100' :
+                            'border-red-500 bg-red-100'
+                          }`}
+                        >
+                          <h4 className="font-semibold">{app.patientName}</h4>
+                          <p className="text-sm text-gray-600">{app.appointmentDate}</p>
+                          <p className="text-sm text-gray-600">{app.time}</p>
+                          <p className={`text-sm font-medium ${
+                            app.status === 'Confirmed' ? 'text-green-700' :
+                            app.status === 'Pending' ? 'text-yellow-700' :
+                            'text-red-700'
+                          }`}>
+                            {app.status}
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Analytics Tab */}
+          {activeTab === 'analytics' && (
+            <div>
+              {/* Analytics content goes here */}
+              <h2 className="text-xl font-semibold">Analytics</h2>
+            </div>
+          )}
+        </div>
       </div>
     </div>
-  </div>
-)}
+  );
+};
 
-
-
-</div>
-</div>
-</div>
-  )}
-
-  export default DocDash;
+export default DocDash;

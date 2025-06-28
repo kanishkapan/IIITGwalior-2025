@@ -30,22 +30,16 @@ const AppointmentForm = () => {
   // Fetch available slots when doctor or date changes
   useEffect(() => {
     const fetchAvailableSlots = async () => {
-      // Clear previous slots
       setAvailableSlots([]);
-      setFormData(prev => ({ ...prev, slotId: "" }));
-      
-      // Only fetch if both doctor and date are selected
+      setFormData((prev) => ({ ...prev, slotId: "" }));
       if (!formData.doctorId || !formData.date) return;
-      
       setLoading(true);
       setError("");
-      
       try {
         const response = await api.get(
           `/user/doctor/${formData.doctorId}/available-slots?date=${formData.date}`
         );
         setAvailableSlots(response.data);
-        
         if (response.data.length === 0) {
           setError("No available slots for this date. Please try another date.");
         }
@@ -56,13 +50,12 @@ const AppointmentForm = () => {
         setLoading(false);
       }
     };
-
     fetchAvailableSlots();
   }, [formData.doctorId, formData.date]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    setSuccess(""); // Clear success message on form change
+    setSuccess("");
   };
 
   const handleSubmit = async (e) => {
@@ -70,176 +63,75 @@ const AppointmentForm = () => {
     setLoading(true);
     setError("");
     setSuccess("");
-    
     try {
-      // Find the selected slot's full information
-      const selectedSlot = availableSlots.find(slot => slot.id === formData.slotId);
-      
-      // Debug logging to see what's in the selected slot
-      console.log("Selected slot:", selectedSlot);
-      
-      // Check if selectedSlot exists
+      const selectedSlot = availableSlots.find((slot) => slot.id === formData.slotId);
       if (!selectedSlot) {
         throw new Error("Selected time slot not found. Please try again.");
       }
-      
-      // Create a proper datetime string that MongoDB can parse
-      // Combine the date with the time from the selected slot
-      const dateStr = formData.date; // "YYYY-MM-DD"
-      const timeStr = selectedSlot.time; // Assuming format like "9:00 AM"
-      
-      // Parse time to 24-hour format
+      const dateStr = formData.date;
+      const timeStr = selectedSlot.time;
       let time24h = timeStr;
-      if (timeStr.includes('AM') || timeStr.includes('PM')) {
-        const [hourMin, period] = timeStr.split(' ');
-        let [hours, minutes] = hourMin.split(':').map(Number);
-        
-        if (period === 'PM' && hours < 12) hours += 12;
-        if (period === 'AM' && hours === 12) hours = 0;
-        
-        time24h = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+      if (timeStr.includes("AM") || timeStr.includes("PM")) {
+        const [hourMin, period] = timeStr.split(" ");
+        let [hours, minutes] = hourMin.split(":").map(Number);
+        if (period === "PM" && hours < 12) hours += 12;
+        if (period === "AM" && hours === 12) hours = 0;
+        time24h = `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
       }
-      
-      // Combine date and time into an ISO string
       const slotDateTime = new Date(`${dateStr}T${time24h}:00`);
-      
-      // Prepare the data for submission
       const appointmentData = {
         doctorId: formData.doctorId,
-        slotDateTime: slotDateTime.toISOString() // Send as ISO string
+        slotDateTime: slotDateTime.toISOString(),
       };
-      
-      console.log("Sending data to server:", appointmentData);
-      
       const response = await api.post("/appointment", appointmentData);
       setSuccess("Appointment booked successfully!");
-      console.log("Response from server:", response.data);
-      
-      // Reset form after successful submission
-      setFormData({
-        doctorId: "",
-        date: "",
-        slotId: ""
-      });
+      setFormData({ doctorId: "", date: "", slotId: "" });
       setAvailableSlots([]);
     } catch (error) {
       setError(error.response?.data?.message || error.message || "Failed to book appointment. Please try again.");
-      console.error("Error submitting form:", error.response?.data || error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const formatDate = (date) => {
-    // Format a date as YYYY-MM-DD for the input field
-    const d = new Date(date);
-    return d.toISOString().split('T')[0];
-  };
-
-  // Get current date for min date attribute
+  const formatDate = (date) => new Date(date).toISOString().split("T")[0];
   const today = formatDate(new Date());
 
   return (
-    <div className="flex flex-col lg:flex-row items-center justify-center min-h-screen bg-gray-100 p-8">
-      {/* Left Section - Form */}
-      <div className="bg-white rounded-lg shadow-lg p-10 w-full max-w-lg lg:w-1/2">
-        <h2 className="text-4xl font-bold text-green-600 mb-4">Book Your Appointment</h2>
-        <p className="text-gray-600 mb-6">Schedule your appointment easily with our doctors.</p>
-        
-        {/* Success Message */}
-        {success && (
-          <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6">
-            <p>{success}</p>
-          </div>
-        )}
-        
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6">
-            <p>{error}</p>
-          </div>
-        )}
-        
-        {/* Form Fields */}
+    <div className="flex flex-col md:flex-row items-center justify-center min-h-screen bg-gray-100 p-4 md:p-8 lg:p-12">
+      <div className="bg-white rounded-lg shadow-lg p-6 md:p-10 w-full max-w-lg md:max-w-2xl lg:w-1/2">
+        <h2 className="text-2xl md:text-3xl font-bold text-green-600 text-center">Book Your Appointment</h2>
+        <p className="text-gray-600 text-center mt-2">Schedule your appointment easily with our doctors.</p>
+        {success && <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-3 my-4">{success}</div>}
+        {error && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 my-4">{error}</div>}
         <form className="space-y-6" onSubmit={handleSubmit}>
-          {/* Doctor Selection */}
           <div>
-            <label className="block text-gray-700 mb-2">Select Doctor</label>
-            <select
-              name="doctorId"
-              className="w-full border rounded-md p-3 text-gray-700"
-              onChange={handleChange}
-              value={formData.doctorId}
-              required
-              disabled={loading}
-            >
+            <label className="block text-gray-700">Select Doctor</label>
+            <select name="doctorId" className="w-full border rounded-md p-2" onChange={handleChange} value={formData.doctorId} required>
               <option value="">Select Doctor</option>
               {doctors.map((doctor) => (
-                <option key={doctor._id} value={doctor._id}>
-                  {doctor.name} - {doctor.specialization}
-                </option>
+                <option key={doctor._id} value={doctor._id}>{doctor.name} - {doctor.specialization}</option>
               ))}
             </select>
           </div>
-          
-          {/* Date Selection */}
           <div>
-            <label className="block text-gray-700 mb-2">Select Date</label>
-            <input
-              type="date"
-              name="date"
-              min={today}
-              className="w-full border rounded-md p-3 text-gray-700"
-              onChange={handleChange}
-              value={formData.date}
-              required
-              disabled={loading}
-            />
+            <label className="block text-gray-700">Select Date</label>
+            <input type="date" name="date" min={today} className="w-full border rounded-md p-2" onChange={handleChange} value={formData.date} required />
           </div>
-          
-          {/* Time Slot Selection */}
           <div>
-            <label className="block text-gray-700 mb-2">Select Time Slot</label>
-            <select
-              name="slotId"
-              className="w-full border rounded-md p-3 text-gray-700"
-              onChange={handleChange}
-              value={formData.slotId}
-              required
-              disabled={loading || availableSlots.length === 0}
-            >
+            <label className="block text-gray-700">Select Time Slot</label>
+            <select name="slotId" className="w-full border rounded-md p-2" onChange={handleChange} value={formData.slotId} required>
               <option value="">Select Time Slot</option>
               {availableSlots.map((slot) => (
-                <option key={slot.id} value={slot.id}>
-                  {slot.time}
-                </option>
+                <option key={slot.id} value={slot.id}>{slot.time}</option>
               ))}
             </select>
-            {loading && formData.doctorId && formData.date && (
-              <p className="text-gray-500 mt-2">Loading available slots...</p>
-            )}
-            {!loading && availableSlots.length === 0 && formData.doctorId && formData.date && (
-              <p className="text-red-500 mt-2">No available slots for this date</p>
-            )}
           </div>
-          
-          <button
-            type="submit"
-            className="w-full bg-black text-white py-3 rounded-md text-lg font-semibold hover:bg-gray-800 disabled:bg-gray-400"
-            disabled={loading || !formData.slotId}
-          >
-            {loading ? "Processing..." : "Book Appointment"}
-          </button>
+          <button type="submit" className="w-full bg-green-600 text-white py-2 rounded-md font-semibold hover:bg-green-700 disabled:bg-gray-400" disabled={!formData.slotId}>{loading ? "Processing..." : "Book Appointment"}</button>
         </form>
       </div>
-      
-      {/* Right Section - Image */}
-      <div className="hidden lg:flex items-center justify-center w-full lg:w-1/2 p-6">
-        <img
-          src="/path-to-your-image.png" // Replace with actual image path
-          alt="Doctor Consultation"
-          className="w-full max-w-md rounded-lg shadow-lg"
-        />
+      <div className="hidden lg:flex w-1/2 justify-center items-center p-4">
+        <img src="./src/assets/form-design-flip.png" alt="Doctor Consultation" className="w-full max-w-md rounded-lg" />
       </div>
     </div>
   );
