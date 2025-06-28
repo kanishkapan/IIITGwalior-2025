@@ -49,11 +49,13 @@ export const bookAppointment = async (req, res) => {
 
     await appointment.save();
 
+    const doctorDetails = await User.findById(doctorId).select("name");
+    const studentDetails = await User.findById(studentId).select("name");
     //storing in db 
     const notification = await Notification.create({
       recipientId: doctorId,
       type: "appointment",
-      message: "📅 You have a new appointment request!",
+      message:`📅 You have a new appointment request from ${studentDetails.name}!`
     });
 
     console.log("✅ SAVED NOTIFICATION:", notification);
@@ -66,14 +68,14 @@ export const bookAppointment = async (req, res) => {
       const doctorSocket = onlineUsers.get(doctorId.toString());
       console.log(`Sending notification to doctor ${doctorId}`);
       doctorSocket.emit("newAppointment", {
-        message: "📅 You have a new appointment request!",
-        appointment,
+        message:  `📅 ${studentDetails.name} has requested an appointment!`,
+        appointment:{
+          ...appointment.toObject(),
+          doctorName: doctorDetails.name,
+          patientName: studentDetails.name
+        },
       });
     }
-      // } else {
-      //   console.log(`Doctor ${doctorId} is offline.`);
-      // }
-    
 
     res.status(201).json({ message: "Appointment booked successfully.", appointment });
   } catch (error) {

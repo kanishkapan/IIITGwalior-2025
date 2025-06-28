@@ -35,7 +35,8 @@ export const applyMedicalLeave = async (req, res) => {
         });
       });
     }
-    
+    const student = await User.findById(req.user.id).select("name");
+
     // Create the medical leave request with all form data
     const leaveRequest = await MedicalLeave.create({
       studentId: req.user.id,
@@ -56,8 +57,7 @@ export const applyMedicalLeave = async (req, res) => {
       type: "leave",
       message: "Your leave request has been submitted successfully.",
     });
-    console.log("$$$$..Saved student noti");
-
+    
     // Find all admins and notify them 
     onlineUsers.forEach(async(socket, userId) => {
       const user = await User.findById(userId);
@@ -68,19 +68,25 @@ export const applyMedicalLeave = async (req, res) => {
         await Notification.create({
           recipientId: user._id,  // Store admin ID
           type: "leave",
-          message: "A student has applied for medical leave!",
+          message:`Student ${student.name} has applied for medical leave!` ,
         });
 
         socket.emit("newLeaveRequest", {
-          message: "A student has applied for medical leave!",
-          leaveRequest,
+          message:  `Student ${student.name} has applied for medical leave!`,
+          leaveRequest: {
+            ...leaveRequest.toObject(), 
+            studentName: student.name, // Include student’s name
+          },
         });
       }
     });
 
     res.status(201).json({ 
       message: "Medical leave applied", 
-      leaveRequest 
+      leaveRequest: {
+        ...leaveRequest.toObject(), 
+        studentName: student.name, 
+      }
     });
   } catch (error) {
     console.error("Error applying for leave:", error);

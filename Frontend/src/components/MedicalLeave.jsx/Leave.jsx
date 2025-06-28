@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../../axios.config.js";
 import { useNavigate } from "react-router-dom";
+import { showAlert } from "../alert-system.js";
 
 const Leave = () => {
   const [formData, setFormData] = useState({
@@ -59,7 +60,7 @@ const Leave = () => {
         },
       });
       if (response.status === 200||response.status === 201) {
-        alert("Leave application submitted successfully.");
+        showAlert("Leave application submitted successfully.");
         navigate("/profile");
       }
 

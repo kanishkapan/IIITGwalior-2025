@@ -33,7 +33,7 @@ export const updateAppointmentStatus = async (req, res) => {
       return res.status(400).json({ message: "Invalid status update." });
     }
 
-    const appointment = await Appointment.findById(id);
+    const appointment = await Appointment.findById(id).populate("doctorId","name");
 
     if (!appointment) {
       return res.status(404).json({ message: "Appointment not found." });
@@ -90,7 +90,7 @@ export const updateAppointmentStatus = async (req, res) => {
       type: "appointment",
       message: `Your appointment has been ${status}`,
     });
-    console.log("...SAVED...Noti")
+    
 
      // 🔹 Integrate Socket.io
      const io = req.app.get("socketio");
@@ -116,7 +116,10 @@ export const updateAppointmentStatus = async (req, res) => {
       // Emit real-time notification to patient
       patientSocket.emit("appointmentUpdate", {
         message: notification.message,
-        appointment,
+        appointment: {
+          ...appointment.toObject(), 
+          doctorName: appointment.doctorId.name, // Extract doctor’s name
+        },
       });
     } else {
       console.log(`Patient ${studentId} is offline. Cannot send update.`);

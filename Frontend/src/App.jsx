@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { UserProvider } from "./context/UserContext";
 import Navbar from "../src/components/Navbar/Navbar";
 import socket from "./socket";
+import { showAlert } from "./components/alert-system.js";
+
 
 import HomePage from "./Pages/HomePage";
 import PatientForm from "./Pages/PatientForm";
@@ -43,27 +45,21 @@ const Appointment = () => <div className="text-center mt-10">📅 Appointment Pa
 
 const App = () => {
   useEffect(() => {
-    // socket.on("connect", () => {
-    //   console.log("WebSocket Connected:", socket.id);
-    // });
-
-    // socket.on("disconnect", () => {
-    //   console.log("WebSocket Disconnected");
-    // });
+    
 
     socket.on("newAppointment", (data) => {
       console.log(" New Appointment Notification:", data);
-      alert(" You have a new appointment request!");
+      showAlert( `Patient ${data.appointment.patientName} has requested an appointment!`,
+         "custom", 5000);
     });
 
     socket.on("appointmentUpdate", (data) => {
       console.log("Appointment Update:", data);
-      alert(`Your appointment has been ${data.appointment.status}`);
+      const doctorName = data.appointment?.doctorName;
+      showAlert(`Dr. ${doctorName} has ${data.appointment.status} your appointment.`, "custom", 5000);
     });
 
     return () => {
-      // socket.off("connect");
-      // socket.off("disconnect");
       socket.off("newAppointment");
       socket.off("appointmentUpdate");
     };

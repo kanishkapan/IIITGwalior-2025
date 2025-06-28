@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import {api} from '../../axios.config';
+import { api } from '../../axios.config';
 import { useNavigate } from "react-router-dom";
 
 const HealthRecordForm = () => {
   const [formData, setFormData] = useState({
-    studentId: '',
     doctorId: '',
     diagnosis: '',
     treatment: '',
@@ -14,12 +13,10 @@ const HealthRecordForm = () => {
     externalDoctorName: '',
     externalHospitalName: '',
   });
+  const [doctorList, setDoctorList] = useState([]);
   const [attachments, setAttachments] = useState([]);
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
- 
-
-  
 
   // Set default date to today's date when component mounts
   useEffect(() => {
@@ -28,7 +25,25 @@ const HealthRecordForm = () => {
       setFormData(prev => ({ ...prev, date: today }));
     }
   }, [formData.date]);
- 
+
+  // Fetch doctors list on mount
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        const response = await api.get("/user/doctors");
+        if (response.status === 200) {
+          // Assuming response.data is an array of doctors with _id, name and specialization properties
+          setDoctorList(response.data);
+        } else {
+          setMessage("Failed to load doctors list.");
+        }
+      } catch (error) {
+        setMessage("Error fetching doctors list.");
+      }
+    };
+    fetchDoctors();
+  }, []);
+
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
     if (type === 'checkbox') {
@@ -43,33 +58,30 @@ const HealthRecordForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage('');
-  
+
     const submissionData = new FormData();
-    submissionData.append('studentId', formData.studentId);
     submissionData.append('doctorId', formData.doctorId);
     submissionData.append('diagnosis', formData.diagnosis);
     submissionData.append('treatment', formData.treatment);
     submissionData.append('prescription', formData.prescription);
     submissionData.append('date', formData.date);
     submissionData.append('isManualUpload', formData.isManualUpload.toString());
-  
+
     if (formData.isManualUpload) {
       submissionData.append('externalDoctorName', formData.externalDoctorName);
       submissionData.append('externalHospitalName', formData.externalHospitalName);
     }
-  
-    console.log("Submission Data:", submissionData);
-  
+
     if (formData.doctorId === "" && !formData.isManualUpload) {
       setMessage("Doctor ID is required.");
       return;
     }
+
     if (attachments.length > 0) {
       for (let i = 0; i < attachments.length; i++) {
         submissionData.append('attachments', attachments[i]);
       }
     }
-    console.log("Submission Data:", submissionData);
 
     try {
       const response = await api.post(
@@ -77,22 +89,16 @@ const HealthRecordForm = () => {
         submissionData,
         { withCredentials: true }
       );
-  
-      if (!response.ok) {
-        const errorData = await response.data;
-        throw new Error(errorData.message || 'Something went wrong!');
-      }
+
       if (response.status === 200 || response.status === 201) {
         console.log("✅ Navigation Triggered");
         navigate("/profile");
       }
       setAttachments([]);
-    
     } catch (error) {
-      setMessage(error.message);
+      setMessage(error.response?.data?.message || error.message);
     }
   };
-  
 
   return (
     <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 mt-10">
@@ -104,36 +110,27 @@ const HealthRecordForm = () => {
           <p className="mb-4 text-center text-sm text-green-700">{message}</p>
         )}
         <form onSubmit={handleSubmit} encType="multipart/form-data">
-          {/* Student ID */}
-          <div className="mb-5">
-            <label htmlFor="studentId" className="block text-gray-700 font-semibold mb-2">
-              Student ID <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              id="studentId"
-              name="studentId"
-              value={formData.studentId}
-              onChange={handleChange}
-              required
-              placeholder="Enter Student ID"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-300 transition duration-200"
-            />
-          </div>
-          {/* Doctor ID */}
+          {/* Doctor Selection */}
           <div className="mb-5">
             <label htmlFor="doctorId" className="block text-gray-700 font-semibold mb-2">
-              Doctor ID
+              Select Doctor
             </label>
-            <input
-              type="text"
+            <select
               id="doctorId"
               name="doctorId"
               value={formData.doctorId}
               onChange={handleChange}
-              placeholder="Enter Doctor ID (if applicable)"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-300 transition duration-200"
-            />
+              required={!formData.isManualUpload}
+            >
+              <option value="">-- Select a doctor --</option>
+              {doctorList.map((doctor) => (
+                // Use doctor._id as the value and include additional info if available.
+                <option key={doctor._id} value={doctor._id}>
+                  {doctor.name} {doctor.specialization ? `- ${doctor.specialization}` : ""}
+                </option>
+              ))}
+            </select>
           </div>
           {/* Diagnosis */}
           <div className="mb-5">
