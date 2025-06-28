@@ -155,7 +155,7 @@ const Predictionchat = () => {
           {/* Input Form */}
           <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl p-4 border border-green-100">
             <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex flex-col md:flex-row items-center gap-2 mb-2">
                 <div className="bg-green-100 p-2 rounded-full">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -166,12 +166,12 @@ const Predictionchat = () => {
                   value={studentId}
                   onChange={(e) => setStudentId(e.target.value)}
                   placeholder="Student ID"
-                  className="flex-none w-32 px-4 py-3 rounded-xl border border-green-200 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+                  className="flex-none w-full md:w-32 px-4 py-3 rounded-xl border border-green-200 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
                   required
                 />
               </div>
               
-              <div className="flex gap-2">
+              <div className="flex flex-col md:flex-row gap-2">
                 <input
                   type="text"
                   value={symptoms}

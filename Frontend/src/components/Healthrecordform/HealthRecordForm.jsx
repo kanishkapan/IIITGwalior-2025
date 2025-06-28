@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import {api} from '../../axios.config';
+import { useNavigate } from "react-router-dom";
 
 const HealthRecordForm = () => {
   const [formData, setFormData] = useState({
@@ -14,6 +16,10 @@ const HealthRecordForm = () => {
   });
   const [attachments, setAttachments] = useState([]);
   const [message, setMessage] = useState('');
+  const navigate = useNavigate();
+ 
+
+  
 
   // Set default date to today's date when component mounts
   useEffect(() => {
@@ -22,7 +28,7 @@ const HealthRecordForm = () => {
       setFormData(prev => ({ ...prev, date: today }));
     }
   }, [formData.date]);
-
+ 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
     if (type === 'checkbox') {
@@ -37,8 +43,7 @@ const HealthRecordForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage('');
-
-    // Create a FormData object to handle file uploads
+  
     const submissionData = new FormData();
     submissionData.append('studentId', formData.studentId);
     submissionData.append('doctorId', formData.doctorId);
@@ -46,52 +51,43 @@ const HealthRecordForm = () => {
     submissionData.append('treatment', formData.treatment);
     submissionData.append('prescription', formData.prescription);
     submissionData.append('date', formData.date);
-    submissionData.append('isManualUpload', formData.isManualUpload);
-
+    submissionData.append('isManualUpload', formData.isManualUpload.toString());
+  
     if (formData.isManualUpload) {
       submissionData.append('externalDoctorName', formData.externalDoctorName);
       submissionData.append('externalHospitalName', formData.externalHospitalName);
     }
-
-    // Append each file for attachments
-    if (attachments && attachments.length > 0) {
-      for (let i = 0; i < attachments.length; i++) {
-        submissionData.append('attachments', attachments[i]);
-      }
+  
+    console.log("Submission Data:", submissionData);
+  
+    if (formData.doctorId === "" && !formData.isManualUpload) {
+      setMessage("Doctor ID is required.");
+      return;
     }
+    console.log("Submission Data:", submissionData);
 
     try {
-      // Adjust the endpoint URL as needed
-      const response = await fetch('/api/healthrecords', {
-        method: 'POST',
-        body: submissionData
-      });
-
+      const response = await api.post(
+        "/health-record/create",
+        submissionData,
+        { withCredentials: true }
+      );
+  
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.data;
         throw new Error(errorData.message || 'Something went wrong!');
       }
-
-      const data = await response.json();
-      setMessage('Health record submitted successfully!');
-
-      // Optionally reset the form
-      setFormData({
-        studentId: '',
-        doctorId: '',
-        diagnosis: '',
-        treatment: '',
-        prescription: '',
-        date: new Date().toISOString().split('T')[0],
-        isManualUpload: false,
-        externalDoctorName: '',
-        externalHospitalName: '',
-      });
+      if (response.status === 200 || response.status === 201) {
+        console.log("✅ Navigation Triggered");
+        navigate("/profile");
+      }
       setAttachments([]);
+    
     } catch (error) {
       setMessage(error.message);
     }
   };
+  
 
   return (
     <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 mt-10">

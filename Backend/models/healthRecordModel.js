@@ -17,7 +17,12 @@ const HealthRecordSchema = new mongoose.Schema(
     isManualUpload: { type: Boolean, default: false },
     externalDoctorName: { type: String }, // Name of doctor (if outside platform)
     externalHospitalName: { type: String }, // Hospital/clinic name (if external)
-    attachments: [{ type: String }], // File URLs
+    attachments: [{
+      url: String,
+      publicId: String,
+      format: String,
+      resourceType: String
+    }], // File URLs
   },
   { timestamps: true }
 );

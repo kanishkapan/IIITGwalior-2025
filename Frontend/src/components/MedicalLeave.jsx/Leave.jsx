@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../../axios.config.js";
+import { useNavigate } from "react-router-dom";
 
 const Leave = () => {
   const [formData, setFormData] = useState({
@@ -11,7 +12,7 @@ const Leave = () => {
   });
 
   const [healthRecords, setHealthRecords] = useState([]);
-
+  const navigate = useNavigate();
   useEffect(() => {
     const fetchHealthRecords = async () => {
       try {
@@ -57,6 +58,10 @@ const Leave = () => {
           "Content-Type": "multipart/form-data",
         },
       });
+      if (response.status === 200||response.status === 201) {
+        alert("Leave application submitted successfully.");
+        navigate("/profile");
+      }
 
       console.log("Response from server:", response.data);
     } catch (error) {

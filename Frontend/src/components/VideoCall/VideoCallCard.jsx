@@ -14,13 +14,13 @@ const VideoCallCard = ({ doctorImage, decorationImage }) => {
             <div className="w-52 h-52 overflow-hidden rounded-xl shadow-md">
               {doctorImage ? (
                 <img 
-                  src={doctorImage} 
+                  src="../src/assets/video call 2.png" 
                   alt="Doctor" 
                   className="w-full h-full object-cover"
                 />
               ) : (
                 <img 
-                  src="/api/placeholder/200/200" 
+                  src="../src/assets/video call 2.png" 
                   alt="Doctor placeholder" 
                   className="w-full h-full object-cover"
                 />
@@ -43,7 +43,7 @@ const VideoCallCard = ({ doctorImage, decorationImage }) => {
         </div>
 
         {/* Decoration Image */}
-        <div className="relative w-40 h-40 flex-shrink-0">
+        <div className="relative w-full h-full flex-shrink-0">
           {decorationImage ? (
             <img 
               src={decorationImage} 
@@ -52,7 +52,7 @@ const VideoCallCard = ({ doctorImage, decorationImage }) => {
             />
           ) : (
             <img 
-              src="/api/placeholder/150/150" 
+            src="../src/assets/form design.png" 
               alt="Decoration placeholder" 
               className="w-full h-full object-contain"
             />

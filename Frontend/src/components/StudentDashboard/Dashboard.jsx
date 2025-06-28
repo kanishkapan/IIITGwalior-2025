@@ -11,6 +11,33 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
   const [appointmentsError, setAppointmentsError] = useState(null);
   const [selectedRecord, setSelectedRecord] = useState(null); // State for selected record
+  const [leaveApplications, setLeaveApplications] = useState([]);
+  const [leaveLoading, setLeaveLoading] = useState(true);
+  const [leaveError, setLeaveError] = useState(null);
+  const [selectedLeave, setSelectedLeave] = useState(null);
+
+
+  useEffect(() => {
+    const fetchLeaveApplications = async () => {
+      try {
+        const response = await api.get("/leave/");
+        if (Array.isArray(response.data)) {
+          setLeaveApplications(response.data);
+        } else {
+          console.error("Unexpected response format:", response.data);
+          setLeaveApplications([]);
+        }
+      } catch (err) {
+        console.error("Error fetching leave applications:", err);
+        setLeaveError("Failed to load leave applications.");
+      } finally {
+        setLeaveLoading(false);
+      }
+    };
+  
+    fetchLeaveApplications();
+  }, []);
+  
 
   // Fetch health records
   useEffect(() => {
@@ -176,6 +203,106 @@ const Dashboard = () => {
           ))}
         </div>
 
+        {/* Medical Leave Applications Section */}
+        <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 mb-8">
+  <h2 className="text-lg font-semibold mb-4 text-gray-700">Medical Leave Applications</h2>
+
+  {leaveLoading ? (
+    <p>Loading leave applications...</p>
+  ) : leaveError ? (
+    <p>{leaveError}</p>
+  ) : leaveApplications.length > 0 ? (
+    <table className="min-w-full bg-white border border-gray-300 rounded-lg shadow-md">
+      <thead>
+        <tr>
+        <th className="px-4 py-2 border-b text-left">Sno.</th>
+          <th className="px-4 py-2 border-b text-left">Date</th>
+          <th className="px-4 py-2 border-b text-left">From Date</th>
+          <th className="px-4 py-2 border-b text-left">To Date</th>
+          <th className="px-4 py-2 border-b text-left">Diagnosis</th>
+          <th className="px-4 py-2 border-b text-left">Status</th>
+          <th className="px-4 py-2 border-b text-left">Actions</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {leaveApplications.map((leave,index) => (
+          <tr key={leave.id}>
+            <td className="px-4 py-2 border-b">{index + 1}</td>
+            <td className="px-4 py-2 border-b">{leave.date}</td>
+            <td className="px-4 py-2 border-b">{leave.fromDate}</td>
+            <td className="px-4 py-2 border-b">{leave.toDate}</td>
+            <td className="px-4 py-2 border-b">{leave.diagnosis}</td>
+
+            {/* Status Highlighting */}
+            <td className="px-4 py-2 border-b">
+      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+        leave.status === "pending"
+          ? "bg-yellow-100 text-yellow-800"
+          : leave.status === "approved"
+          ? "bg-green-100 text-green-800"
+          : "bg-red-100 text-red-800"
+      }`}>
+        {leave.status && typeof leave.status === 'string'
+          ? leave.status.charAt(0).toUpperCase() + leave.status.slice(1)
+          : 'N/A'}
+      </span>
+    </td>
+
+            {/* View Status Button */}
+            <td className="px-4 py-2 border-b">
+              <button
+                onClick={() => setSelectedLeave(leave)}
+                className="text-blue-600 hover:underline"
+              >
+                View Status
+              </button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  ) : (
+    <p>No medical leave applications found.</p>
+  )}
+
+  {/* Modal for viewing selected leave details */}
+  {selectedLeave && (
+    <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 mb-8">
+            <h2 className="text-lg font-semibold mb-4 text-gray-700">Medical leave applications</h2>
+
+        
+        <p><strong>Reason:</strong> {selectedLeave.reason}</p>
+        <p><strong>Duration:</strong> {selectedLeave.fromDate} to {selectedLeave.toDate}</p>
+        <p><strong>Diagnosis:</strong> {selectedLeave.diagnosis}</p>
+        <p><strong>Doctor name:</strong> {selectedLeave.doctorName}</p>
+
+        {/* Status with color highlighting */}
+        <p><strong>Status:</strong> 
+          <span
+            className={`ml-1 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+              selectedLeave.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+              selectedLeave.status === "approved" ? "bg-green-100 text-green-800" :
+              "bg-red-100 text-red-800"
+            }`}
+          >
+            {selectedLeave.status.charAt(0).toUpperCase() + selectedLeave.status.slice(1)}
+          </span></p>
+
+        {/* Close Button */}
+        <button
+          onClick={() => setSelectedLeave(null)}
+          className="mt-4 bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600"
+        >
+          Close
+        </button>
+        </div>
+     
+    )}
+</div>
+
+
+
         {/* Student Appointments Section */}
         <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 mb-8">
           <h2 className="text-lg font-semibold mb-4 text-gray-700">My Appointments</h2>
@@ -229,16 +356,16 @@ const Dashboard = () => {
             <table className="min-w-full bg-white border border-gray-300 rounded-lg shadow-md">
               <thead>
                 <tr>
-                  <th className="px-4 py-2 border-b text-left">ID</th>
+                  <th className="px-4 py-2 border-b text-left">Sno.</th>
                   <th className="px-4 py-2 border-b text-left">Diagnosis</th>
                   <th className="px-4 py-2 border-b text-left">Date</th>
                   <th className="px-4 py-2 border-b text-left">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {healthRecords.map((record) => (
+                {healthRecords.map((record,index) => (
                   <tr key={record._id}>
-                    <td className="px-4 py-2 border-b">{record._id}</td>
+                    <td className="px-4 py-2 border-b">{index+1}</td>
                     <td className="px-4 py-2 border-b">{record.diagnosis}</td>
                     <td className="px-4 py-2 border-b">{new Date(record.date).toLocaleDateString()}</td>
                     <td className="px-4 py-2 border-b">
@@ -262,12 +389,17 @@ const Dashboard = () => {
         {selectedRecord && (
           <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 mb-8">
             <h2 className="text-lg font-semibold mb-4 text-gray-700">Health Record Details</h2>
-            <p><strong>ID:</strong> {selectedRecord._id}</p>
+          
             <p><strong>Diagnosis:</strong> {selectedRecord.diagnosis}</p>
             <p><strong>Date:</strong> {new Date(selectedRecord.date).toLocaleDateString()}</p>
             <p><strong>Treatment:</strong> {selectedRecord.treatment || "N/A"}</p>
             <p><strong>Prescription:</strong> {selectedRecord.prescription || "N/A"}</p>
-            <button onClick={() => setSelectedRecord(null)} className="text-red-600 hover:underline">Close</button>
+            <button
+          onClick={() => setSelectedRecord(null)}
+          className="mt-4 bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600"
+        >
+          Close
+        </button>
           </div>
         )}
       </div>

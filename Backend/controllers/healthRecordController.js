@@ -1,11 +1,49 @@
 import { HealthRecord } from "../models/healthRecordModel.js";
+import { uploadMultipleDocuments } from "../utils/cloudinary.js";
+import fs from 'fs';
 
 // Create a new health record
 export const createHealthRecord = async (req, res) => {
   try {
-    const { doctorId, diagnosis, treatment, prescription, isManualUpload, externalDoctorName, externalHospitalName, attachments } = req.body;
+    console.log("Request Body:", req.body);
+
+    const { diagnosis, treatment, prescription, externalDoctorName, externalHospitalName } = req.body;
     const studentId = req.user.id;
-    // const doctorId = isManualUpload ? null : req.body; // If manually uploaded, no doctorId
+    const isManualUpload = req.body.isManualUpload === "true"; // Get student ID from authenticated user
+    let doctorId;
+
+    if (isManualUpload) {
+      doctorId = null;
+    } else if (!req.body.doctorId || req.body.doctorId === "") {
+      return res.status(400).json({ message: "Doctor ID is required" });
+    } else {
+      doctorId = req.body.doctorId;
+    }
+
+    if (!diagnosis || !treatment) {
+      return res.status(400).json({ message: "Diagnosis and treatment are required" });
+    }
+
+    let attachments = [];
+    if (req.files && req.files.length > 0) {
+      // Upload files to Cloudinary
+      const filePaths = req.files.map(file => file.path);
+      const uploadResults = await uploadMultipleDocuments(filePaths);
+      
+      // Format the document array for storage
+      attachments = uploadResults.map(result => ({
+        url: result.secure_url,
+        publicId: result.public_id,
+        format: result.format
+      }));
+      
+      // Clean up temp files after upload
+      req.files.forEach(file => {
+        fs.unlink(file.path, (err) => {
+          if (err) console.log(`Failed to delete temp file: ${file.path}`, err);
+        });
+      });
+    }
 
     const newRecord = new HealthRecord({
       studentId,
@@ -16,13 +54,14 @@ export const createHealthRecord = async (req, res) => {
       isManualUpload,
       externalDoctorName,
       externalHospitalName,
-      attachments,
+      attachments, // Handle file uploads
     });
 
     await newRecord.save();
     res.status(201).json({ message: "Health record created successfully", newRecord });
   } catch (error) {
-    res.status(500).json({ message: "Error creating health record", error: error.message });
+    console.error("Error creating health record:", error);
+    res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 };
 

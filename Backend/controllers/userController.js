@@ -52,7 +52,7 @@ export const signup = async (req, res) => {
 
 // User Login
 export const login = async (req, res) => {
-  console.log("Signup Controller Hit!");
+  console.log("login Controller Hit!");
   console.log("Request Body:", req.body);
   try {
     const { email, password } = req.body;
@@ -63,7 +63,10 @@ export const login = async (req, res) => {
     }
 
     generateToken(res, user);
-    res.json({ message: "Logged in successfully", role: user.role });
+    res.status(200).json({
+      role: user.role,
+      userData: { id: user._id, name: user.name, email: user.email, role: user.role },
+    });
   } catch (error) {
     res.status(500).json({ message: "Server Error" });
   }

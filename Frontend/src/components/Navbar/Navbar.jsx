@@ -9,16 +9,46 @@ const Navbar = React.memo(() => {
   const { isLoggedIn, user, logout } = useContext(UserContext);
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
+  console.log("User Data:", user);
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
   };
+  
+
+  const { Setuser } = useContext(UserContext); // Get user from context
+
+
+  const handleProfileClick = () => {
+    if (!user) {
+      console.log("User not logged in!");
+      return;
+    }
+  
+    console.log("User role:", user.role); // Debugging log
+  
+    // Redirect based on role
+    if (user.role === "doctor") {
+      navigate("/doctor");
+    } else if (user.role === "student") {
+      navigate("/profile");
+    } else if (user.role === "admin") {
+      navigate("/admin");
+    } else {
+      console.log("Unknown role:", user.role);
+    }
+  };
+  
+
+
 
   const handleLogout = async () => {
     try {
       await api.post("user/logout"); // Call logout endpoint
       logout(); // Update local state
+      
       navigate("/"); // Navigate to home after logout
+      Setuser(null);
     } catch (error) {
       console.error("Error logging out:", error);
     }
@@ -40,15 +70,17 @@ const Navbar = React.memo(() => {
         <li><Link to="/appointment" className="hover:text-green-500">Appointment</Link></li>
         <li><Link to="/video-call" className="hover:text-green-500">Video Call</Link></li>
       </ul>
-
       <div className="hidden md:flex space-x-4">
         {isLoggedIn ? (
           <div className="flex items-center space-x-2">
-            <Link to="/profile">
-              <div className="rounded-full bg-gray-200 w-8 h-8 flex justify-center items-center">
+            
+            <div 
+         onClick={handleProfileClick}
+         className="cursor-pointer rounded-full bg-gray-200 w-8 h-8 flex justify-center items-center"
+       >
                 {user && user.name ? user.name.charAt(0).toUpperCase() : "U"}
               </div>
-            </Link>
+            
             <button onClick={handleLogout} className="bg-green-300 text-green-900 px-4 py-2 rounded-lg font-bold hover:bg-green-400">Logout</button>
           </div>
         ) : (
@@ -62,6 +94,7 @@ const Navbar = React.memo(() => {
           </>
         )}
       </div>
+    
 
       <div className="md:hidden">
         <button onClick={toggleMenu} className="text-2xl">
@@ -102,10 +135,9 @@ const Navbar = React.memo(() => {
 
           {isLoggedIn ? (
             <div className="flex flex-col space-y-2">
-              <div onClick={() => {
-                navigate("/profile");
-                toggleMenu();
-              }} className="text-lg hover:text-green-500 cursor-pointer">Profile</div>
+              <div onClick={
+                handleProfileClick
+              } className="text-lg hover:text-green-500 cursor-pointer">Profile</div>
               <button onClick={handleLogout} className="bg-green-300 text-green-900 px-4 py-2 rounded-lg font-bold hover:bg-green-400 text-center">Logout</button>
             </div>
           ) : (
