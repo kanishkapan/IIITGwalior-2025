@@ -168,14 +168,12 @@ const DocDash = () => {
             <span className="text-lg font-medium">Dashboard</span>
           </Link>
           {[
-            { name: 'Patient Records', icon: User },
-            { name: 'Certificates', icon: FileCheck },
+           
             { name: 'Appointments', icon: Calendar },
             { name: 'Prescriptions', icon: FileText },
-            { name: 'Video Calls', icon: Video },
+            { name: 'Video-Call', icon: Video },
             { name: 'AI Assistant', icon: Bot },
-            { name: 'Reports', icon: AlertCircle },
-            { name: 'Settings', icon: Settings }
+          
           ].map(item => (
             <Link key={item.name} to={`/${item.name.toLowerCase().replace(' ', '-')}`} className="flex items-center px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">
               <item.icon className="w-5 h-5 mr-2" />
@@ -276,12 +274,7 @@ const DocDash = () => {
             >
               Video Consultations
             </button>
-            <button 
-              onClick={() => setActiveTab('analytics')} 
-              className={`pb-4 px-1 ${activeTab === 'analytics' ? 'border-b-2 border-blue-600 text-blue-600 font-semibold' : 'text-gray-500'}`}
-            >
-              Analytics
-            </button>
+         
           </div>
         </div>
 
