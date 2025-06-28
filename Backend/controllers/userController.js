@@ -4,6 +4,7 @@ import bcrypt from "bcrypt";
 // Generate JWT Token & Set Cookie
 const generateToken = (res, user) => {
   const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "1d" });
+  console.log("Generated JWT Token:", token);
   res.cookie("jwt", token, { httpOnly: true });
 };
 
@@ -35,6 +36,8 @@ export const signup = async (req, res) => {
 
 // User Login
 export const login = async (req, res) => {
+  console.log("Signup Controller Hit!");
+  console.log("Request Body:", req.body);
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
@@ -44,12 +47,11 @@ export const login = async (req, res) => {
     }
 
     generateToken(res, user);
-    res.json({ message: "Login successful", role: user.role });
+    res.json({ message: "Logged in successfully", role: user.role });
   } catch (error) {
     res.status(500).json({ message: "Server Error" });
   }
 };
-
 // User Logout
 export const logout = (req, res) => {
   res.clearCookie("jwt");

@@ -1,66 +1,47 @@
-import { useState } from "react";
-import React from "react";
+import React, { useState } from "react";
+import { api } from "../../axios.config.js";
 
 export default function Login() {
-  const [role, setRole] = useState("student"); // Default role
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [phone, setPhone] = useState("");
-  const [extra, setExtra] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const formData = { role, name, email, password, phone };
-    if (role === "doctor") formData.specialization = extra;
 
     try {
-      const response = await fetch("https://your-backend-url.com/api/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
-      const data = await response.json();
-      console.log("Success:", data);
+      const response = await api.post(
+        "/user/login",
+        { email, password },
+        { withCredentials: true } // Important for cookies to be stored
+      );
+      
+      //console.log("Success:", response.data);
+
+      if (response.status === 200) {
+        const { role } = response.data;
+        if (role === "doctor") {
+          window.location.href = "/doctor/dashboard";//to be made
+        } else if (role === "student") {
+          window.location.href = "/profile";
+        } else {
+          window.location.href = "/admin/dashboard";// to be made
+        }
+      }
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error:", error); 
     }
   };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100 p-8">
       <div className="bg-white p-12 rounded-xl shadow-lg max-w-4xl w-full flex flex-col md:flex-row items-center">
-        <div className="w-full md:w-1/2 flex justify-center">
-          <img src="/path-to-your-image.png" alt="Login Illustration" className="w-full h-auto max-w-md" />
+        <div className="w-full md:w-1/2 h-full flex-col object-cover flex justify-center">
+          <h1 className="text-6xl flex-row mb-28 text-center">Log In </h1>
+          <img src="../src/assets/sign up page.png" alt="Sign Up Illustration" className="w-full h-full object-cover max-w-md" />
         </div>
 
         <div className="w-full md:w-1/2 p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="flex items-center space-x-4 mb-6">
-              {["student", "doctor", "admin"].map((r) => (
-                <label key={r} className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    name="role"
-                    checked={role === r}
-                    onChange={() => setRole(r)}
-                    className="form-radio text-green-500"
-                  />
-                  <span className="capitalize">{r}</span>
-                </label>
-              ))}
-            </div>
-
-            <input
-              type="text"
-              placeholder="Your Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full p-4 border rounded-lg focus:ring focus:ring-green-300"
-              required
-            />
             <input
               type="email"
               placeholder="Email Address"
@@ -77,23 +58,6 @@ export default function Login() {
               className="w-full p-4 border rounded-lg focus:ring focus:ring-green-300"
               required
             />
-            <input
-              type="text"
-              placeholder="Phone Number (Optional)"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="w-full p-4 border rounded-lg focus:ring focus:ring-green-300"
-            />
-            {role === "doctor" && (
-              <input
-                type="text"
-                placeholder="Specialization"
-                value={extra}
-                onChange={(e) => setExtra(e.target.value)}
-                className="w-full p-4 border rounded-lg focus:ring focus:ring-green-300"
-                required
-              />
-            )}
             <button type="submit" className="w-full mt-4 p-4 bg-black text-white rounded-lg hover:bg-gray-800">
               Login
             </button>

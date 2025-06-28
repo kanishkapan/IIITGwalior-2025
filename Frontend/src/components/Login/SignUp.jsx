@@ -1,6 +1,6 @@
 import { useState } from "react";
 import React from "react";
-
+import { api } from "../../axios.config.js";
 export default function SignUp() {
   const [role, setRole] = useState("student");
   const [name, setName] = useState("");
@@ -17,25 +17,39 @@ export default function SignUp() {
     if (role === "doctor") formData.specialization = extra;
 
     try {
-      const response = await fetch("https://your-backend-url.com/api/signup", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
-      const data = await response.json();
-      console.log("Success:", data);
+      const response = await api.post(
+        "user/signup",
+        formData,
+        {withCredentials: true} // If needed for cookies
+      );
+      
+      console.log("Success:", response.data);
+      if(response.status === 201) {
+        window.location.href = "/";
+     } 
     } catch (error) {
-      console.error("Error:", error);
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        console.log("Error Response Data:", error.response.data);
+        console.log("Error Response Status:", error.response.status);
+        console.log("Error Response Headers:", error.response.headers);
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.log("Error Request:", error.request);
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.log("Error Message:", error.message);
+      }
+      console.log("Error Config:", error.config);
     }
   };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100 p-8">
       <div className="bg-white p-12 rounded-xl shadow-lg max-w-4xl w-full flex flex-col md:flex-row items-center">
-        <div className="w-full md:w-1/2 flex justify-center">
-          <img src="/path-to-your-image.png" alt="Sign Up Illustration" className="w-full h-auto max-w-md" />
+        <div className="w-full md:w-1/2 h-full flex-col object-cover flex justify-center">
+        <h1 className="text-6xl flex-row mb-48 text-center">Sign Up</h1>
+          <img src="../src/assets/sign up page.png" alt="Sign Up Illustration" className="w-full h-full object-cover max-w-md" />
         </div>
 
         <div className="w-full md:w-1/2 p-6">
@@ -91,7 +105,7 @@ export default function SignUp() {
               value={dateOfBirth}
               onChange={(e) => setDateOfBirth(e.target.value)}
               className="w-full p-4 border rounded-lg focus:ring focus:ring-green-300"
-              required
+              
             />
             <select
               value={gender}
