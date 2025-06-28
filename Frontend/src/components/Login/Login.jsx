@@ -24,12 +24,12 @@ export default function Login() {
         login(userData); // Update user context
 
         if (role === "doctor") {
-          navigate ( "/doctor/dashboard");  //to be made
+          navigate ( "/doctor");  
         } else if (role === "student") {
           navigate("/profile");
         }
         else {
-          navigate("/admin/dashboard");// to be made
+          navigate("/admin");
         }
       }
     } catch (error) {

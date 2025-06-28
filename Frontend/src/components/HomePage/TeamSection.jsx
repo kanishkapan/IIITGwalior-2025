@@ -4,39 +4,34 @@ const teamMembers = [
   {
     name: "Kanishka Pandey",
     role: "UI/UX Designer",
-    experience: "10+ years of experience in digital marketing. Expertise in SEO, PPC, and content strategy.",
-    image: "/profile-image.jpg"
+    experience: "Winner at Hackverse 5.0 NIT Surathkal | Third Winner in Quasar 2.0| Code Rush Finalist 2023{IIT Gwalior} |",
+    image: "/./src/assets/Screenshot 2025-03-11 205754.png"
   },
   {
     name: "Urvashi Marmat",
     role: "Frontend Lead",
-    experience: "7+ years of experience in project management and team leadership. Strong organizational and communication skills.",
-    image: "/profile-image.jpg"
+    experience: "Winner at Hackverse 5.0 NIT Surathkal | MERN Developer | Frontend Expert | Skilled in Problem-Solving",
+    image: "./src/assets/urvashi.png"
   },
   {
     name: "Mufaddal Ratlamwala",
     role: "Backend Lead",
-    experience: "5+ years of experience in SEO and content creation. Proficient in keyword research and on-page optimization.",
-    image: "/profile-image.jpg"
+    experience: "Hackverse 5.0 NITK 🏆| Back-End Development | Full-Stack MERN Development | DSA | Contributor @GSSoC'24 | Core Team @GDSC",
+    image: "./src/assets/Screenshot 2025-03-11 205909.png"
   },
   {
-    name: "Teena Evane",
-    role: "Researcher",
-    experience: "3+ years of experience in paid search advertising. Skilled in campaign management and performance analysis.",
-    image: "/profile-image.jpg"
+    name: "Tannisa Sinha",
+    role: "AI lead ",
+    experience: "Ai and research lead make trained machine learning models.",
+    image: "./src/assets/tanissa.jpg"
   },
   {
-    name: "Arin Jain",
-    role: "Frontend Dev",
-    experience: "4+ years of experience in social media marketing. Proficient in creating and scheduling content, analyzing metrics, and building engagement.",
-    image: "/profile-image.jpg"
+    name: "Maneet Singh Chhabra ",
+    role: "Blockchain Lead/backend Dev",
+    experience: "CSE undergrad at IET-DAVV | MERN Developer | DSA | Open Source | Competitive programming",
+    image: "./src/assets/Screenshot 2025-03-11 210252.png"
   },
-  {
-    name: "Vaibhav Mandloi",
-    role: "Backend Dev",
-    experience: "2+ years of experience in writing and editing. Skilled in creating compelling, SEO-optimized content for various industries.",
-    image: "/profile-image.jpg"
-  }
+  
 ];
 
 const TeamSection = () => {

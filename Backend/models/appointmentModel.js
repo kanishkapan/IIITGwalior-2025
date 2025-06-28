@@ -12,8 +12,7 @@ const AppointmentSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    date: { type: Date, required: true },
-    timeSlot: { type: String, required: true }, // e.g., "10:00 AM"
+    slotDateTime: { type: Date, required: true },
     status: {
       type: String,
       enum: ["pending", "confirmed", "cancelled"],

@@ -24,9 +24,9 @@ const UserSchema = new mongoose.Schema(
     specialization: { type: String }, // Only for doctors
     availableSlots: [
       {
-        date: { type: Date },
-        timeSlots: [{ type: String }], // e.g., ["10:00 AM", "2:00 PM"]
-      },
+        dateTime: { type: Date, required: true }, // Full datetime of the appointment slot
+        isBooked: { type: Boolean, default: false }
+      }
     ],
   },
   { timestamps: true }
