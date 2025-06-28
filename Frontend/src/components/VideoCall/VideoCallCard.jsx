@@ -1,6 +1,9 @@
 import React from 'react';
 
 const VideoCallCard = ({ doctorImage, decorationImage }) => {
+  const handleScheduleSession = () => {
+    window.location.href = "https://kani21.daily.co/TzK7Hs9DL3CdAS80lgq3"; // Replace with your actual Daily.co room link
+  };
   return (
     <div className="container mx-auto p-6 max-w-5xl bg-gray-100 min-h-screen flex items-center justify-center">
       <div className="w-full max-w-3xl flex flex-col md:flex-row items-center justify-between gap-12 p-6 bg-white shadow-lg rounded-xl">
@@ -33,7 +36,7 @@ const VideoCallCard = ({ doctorImage, decorationImage }) => {
               GRADUATED FROM ITALY SCHOOL<br />
               OF MEDICAL SCIENCE
             </p>
-            <button className="w-full bg-emerald-500 text-white font-semibold py-3 rounded-lg hover:bg-emerald-600 transition-all shadow-md">
+            <button onClick={handleScheduleSession} className="w-full bg-emerald-500 text-white font-semibold py-3 rounded-lg hover:bg-emerald-600 transition-all shadow-md">
               See Your Doctor !
             </button>
           </div>
