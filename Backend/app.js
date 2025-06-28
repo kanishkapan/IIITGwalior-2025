@@ -4,10 +4,7 @@ import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import connectDB from "./db/database.js";
-import userRouter from "./routes/userRoute.js";
-import medicalLeaveRouter from "./routes/medicalLeaveRoute.js";
-import healthRecordRouter from "./routes/healthRecordRoutes.js";
-import appointmentRouter from "./routes/appointmentRoutes.js";
+import Routes from "./routes/index.js";
 
 const app = express();
 dotenv.config();
@@ -22,16 +19,7 @@ app.use(
   })
 );
 
-// Routes
-app.use("/api/user", (req, res, next) => {
-    console.log("Users route hit!");
-    next();
-  });
-  
-app.use("/api/v1/user", userRouter);
-app.use("/api/v1/leave", medicalLeaveRouter);
-app.use("/api/v1/health-record", healthRecordRouter);
-app.use("/api/v1/appointment", appointmentRouter);
+app.use("/api/v1", Routes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, ()=>{
