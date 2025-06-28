@@ -14,10 +14,11 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(
   cors({
-    origin: "http://localhost:5173", // Update this URL as needed
+    origin: ["http://localhost:5173", "http://localhost:5000"], // Correct syntax
     credentials: true,
   })
 );
+
 
 app.use("/api/v1", Routes);
 
